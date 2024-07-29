@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  elixir_ui:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    image: elixir_cloud_db_ui
+    container_name: cloud_db_ui_elixir_ui
+    environment:
+      MIX_ENV: prod
+      DATABASE_URL: ecto://${POSTGRES_USER}:${POSTGRES_PASSWORD}@cloud_db_ui_postgres_db:5432/${POSTGRES_DB}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      IMAGE_SERVER_HOST: cloud_db_ui_image_server:25478
+      IMAGE_SERVER_RO_TOKEN: ${IMAGE_SERVER_RO_TOKEN}
+      IMAGE_SERVER_RW_TOKEN: ${IMAGE_SERVER_RW_TOKEN}
+    ports:
+      - "8080:4000"
+    networks:
+      - network
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      image_server:
+        condition: service_started
+
+  image_server:
+    image: mayth/simple-upload-server:latest
+    container_name: cloud_db_ui_image_server
+    command:
+      - -enable_auth
+      - -read_only_tokens
+      - ${IMAGE_SERVER_RO_TOKEN}
+      - -read_write_tokens
+      - ${IMAGE_SERVER_RW_TOKEN}
+      - -addr
+      - 0.0.0.0:25478
+      - -max_upload_size
+      - '5242880'
+      - -document_root 
+      - /var/root
+    networks:
+      - network
+    volumes:
+      - image_server_volume:/var/root
+
+  postgres_db:
+    image: postgres:17.2
+    container_name: cloud_db_ui_postgres_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    networks:
+      - network
+    volumes:
+      - postgres_db_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
+      timeout: 5s
+
+networks:
+  # Actually `cloud_db_ui_network`.
+  network:
+
+volumes:
+  # Actually `cloud_db_ui_postgres_db_volume`.
+  postgres_db_volume:
+  # Actually `cloud_db_ui_image_server_volume`.
+  image_server_volume:
