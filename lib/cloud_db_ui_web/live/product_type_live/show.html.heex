@@ -1,0 +1,77 @@
+<.header>
+  Product type ID <%= if @type, do: @type.id %>
+  <:subtitle></:subtitle>
+  <:actions :if={@type}>
+    <.link 
+      class={button_class()} 
+      patch={~p"/product_types/#{@type}/show/edit"} 
+      phx-click={JS.push_focus()}
+    >
+      Edit product type
+    </.link>
+    <.link 
+      class={button_class()} 
+      phx-click={JS.push("delete")} 
+      data-confirm={if @type.products == 0, do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Name"><%= if @type, do: @type.name %></:item>
+  <:item title="Creation date and time (UTC)">
+    <%= if @type, do: format(@type.inserted_at) %>
+  </:item>
+  <:item title="Description"><%= if @type, do: @type.description %></:item>
+  <:item title="Assignable to products">
+    <%= if @type, do: (if @type.assignable, do: "Yes", else: "No") %>
+  </:item>
+  <:item title="Product count"><%= if @type, do: @type.products %></:item>
+</.list>
+
+<div class="mt-11"><.label><%= table_header(@type) %></.label></div>
+
+<.table 
+  :if={!@type or @type.products > 0} 
+  id="product-type-products" 
+  rows={@streams.products}
+>
+  <:col :let={{_id, product}} label="Product ID">
+    <%= product.id %>
+  </:col>
+  <:col :let={{_id, product}} label="Name">
+    <%= product.name %>
+  </:col>
+  <:col :let={{_id, product}} label="Description">
+    <%= product.description %>
+  </:col>
+  <:col :let={{_id, product}} label="Unit price, PLN">
+    <%= format(product.unit_price) %>
+  </:col>
+  <:col :let={{_id, product}} label="Orderable">
+    <%= if product.orderable, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, product}} label="Image">
+    <%= img(product.image_path, "product image", 45, @load_images?) %>
+  </:col>
+</.table>
+
+<.back navigate={~p"/product_types"}>Back to product_types</.back>
+
+<.modal 
+  :if={@type && @live_action == :edit} 
+  id="product-type-modal" 
+  show 
+  on_cancel={JS.patch(~p"/product_types/#{@type}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.ProductTypeLive.FormComponent}
+    id={"product-type-#{@type.id}"}
+    title={@page_title}
+    action={@live_action}
+    type={@type}
+    patch={~p"/product_types/#{@type}"}
+  />
+</.modal>

@@ -1,0 +1,88 @@
+<.header>
+  Listing users
+  <:actions>
+    <.link patch={~p"/users/new"}><.button>New user</.button></.link>
+  </:actions>
+</.header>
+
+<div class="mt-11">
+  <.filter_form 
+    id="filter-form" 
+    meta={@meta} 
+    on_change="filter" 
+    rows={2} 
+    columns={4} 
+    fields={filter_form_field_opts(@current_user)} 
+  />
+</div>
+
+<Flop.Phoenix.table
+  :if={@meta.total_count == nil or @meta.total_count > 0} 
+  id="users-flop" 
+  items={@streams.users} 
+  meta={@meta} 
+  on_sort={JS.push("sort")} 
+  row_click={fn {_id, user} -> JS.navigate(~p"/users/#{user}") end}
+>
+  <:col :let={{_id, user}} field={:id} label="ID"><%= user.id %></:col>
+  <:col :let={{_id, user}} field={:email} label="E-mail">
+    <%= user.email %>
+  </:col>
+  <:col 
+    :let={{_id, user}} 
+    field={:inserted_at} 
+    label="Registration date and time (UTC)"
+  >
+    <%= format(user.inserted_at) %>
+  </:col>
+  <:col 
+    :let={{_id, user}} 
+    field={:confirmed_at} 
+    label="E-mail confirmation date and time (UTC)"
+  >
+    <%= format(user.confirmed_at) %>
+  </:col>
+  <:col :let={{_id, user}} field={:balance} label="Balance, PLN">
+    <%= format(user.balance) %>
+  </:col>
+  <:col :let={{_id, user}} field={:active} label="Active">
+    <%= if user.active, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, user}} field={:admin} label="Administrator">
+    <%= if user.admin, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, user}} label="Orders"><%= user.orders %></:col>
+  <:col :let={{_id, user}} label="Paid orders"><%= user.paid_orders %></:col>
+  <:action :let={{_id, user}}>
+    <div class="sr-only">
+      <.link navigate={~p"/users/#{user}"}>Show</.link>
+    </div>
+    <.link patch={~p"/users/#{user}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, user}}>
+    <.link
+      phx-click={js_delete(id, User.deletable?(user), user)}
+      data-confirm={if User.deletable?(user), do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:action>
+</Flop.Phoenix.table>
+
+<.pagination meta={@meta} />
+
+<.modal 
+  :if={@user && @live_action in [:new, :edit]} 
+  id="user-modal" 
+  show 
+  on_cancel={JS.patch(~p"/users")}
+>
+  <.live_component
+    module={CloudDbUiWeb.UserLive.FormComponent}
+    id={"user-#{@user.id || :new}"}
+    title={@page_title}
+    action={@live_action}
+    user={@user}
+    patch={~p"/users"}
+  />
+</.modal>
