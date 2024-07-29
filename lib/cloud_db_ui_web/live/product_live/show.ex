@@ -1,0 +1,79 @@
+defmodule CloudDbUiWeb.ProductLive.Show do
+  use CloudDbUiWeb, :live_view
+  use CloudDbUiWeb.FlashTimed, :live_view
+
+  alias CloudDbUi.Accounts.User
+  alias CloudDbUi.Products
+  alias CloudDbUi.Products.Product
+  alias CloudDbUiWeb.FlashTimed
+  alias Phoenix.LiveView.Socket
+
+  import CloudDbUiWeb.ProductLive.Actions
+  import CloudDbUiWeb.HTML
+  import CloudDbUiWeb.Utilities
+
+  @impl true
+  def mount(%{"id" => product_id} = _params, _session, socket) do
+    socket_new =
+      socket
+      |> assign_product_and_orders!(product_id)
+      |> FlashTimed.clear_after()
+
+    {:ok, socket_new}
+  end
+
+  @impl true
+  def handle_params(params, _uri, %{assigns: %{live_action: action}} = socket)
+      when action in [:show, :redirect] do
+    {:noreply, apply_action(socket, action, params)}
+  end
+
+  # Opening a modal common to `Show` and `Index` (action: `:edit`).
+  def handle_params(
+        %{"id" => id} = params,
+        _uri,
+        %{assigns: %{live_action: action}} = socket
+      ) do
+    {:noreply, apply_action(socket, action, params, ~p"/products/#{id}")}
+  end
+
+  @impl true
+  def handle_event("delete", _params, %{assigns: %{product: prod}} = socket) do
+    {:noreply, delete_product(socket, prod)}
+  end
+
+  @impl true
+  def handle_info(
+        {CloudDbUiWeb.ProductLive.FormComponent, {:saved, product}},
+        socket
+      ) do
+    {:noreply, assign(socket, :product, product)}
+  end
+
+  # An admin can view a non-orderable product with orders.
+  @spec assign_product_and_orders!(%Socket{}, String.t()) :: %Socket{}
+  defp assign_product_and_orders!(
+         %{assigns: %{current_user: %{admin: true}}} = socket,
+         id
+       ) do
+    product = Products.get_product_with_type_and_order_users!(id)
+
+    socket
+    # Replace the list of orders with their count.
+    |> assign(
+      :product,
+      Map.replace!(product, :orders, Enum.count(product.orders))
+    )
+    |> stream(:orders, product.orders)
+  end
+
+  # A user or a guest can view only an orderable product without orders.
+  defp assign_product_and_orders!(socket, id) do
+    assign(socket, :product, Products.get_orderable_product_with_type!(id))
+  end
+
+  @spec table_header(%Product{}) :: String.t()
+  defp table_header(%Product{orders: 0}), do: "No orders with this product."
+
+  defp table_header(%Product{}), do: "Orders with this product"
+end

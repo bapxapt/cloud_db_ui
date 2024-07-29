@@ -1,0 +1,126 @@
+<.header>
+  Order ID <%= @order.id %>
+  <:subtitle></:subtitle>
+  <:actions>
+    <.link
+      patch={~p"/orders/#{@order}/show/edit"} 
+      phx-click={JS.push_focus()}
+    >
+      <.button>Edit order</.button>
+    </.link>
+    <.link
+      patch={~p"/orders/#{@order}/show/pay"} 
+      phx-click={JS.push_focus()}
+    >
+      <.button>Pay</.button>
+    </.link>
+    <.link 
+      phx-click={JS.push("delete")} 
+      data-confirm={if !@order.paid, do: "This will delete the whole order. Are you sure?"}
+    >
+      <.button>Delete</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item :if={@current_user.admin} title="User ID">
+    <%= @order.user_id %>
+  </:item>
+  <:item :if={@current_user.admin} title="User e-mail">
+    <%= @order.user.email %>
+  </:item>
+  <:item title="Total">PLN <%= format(@order.total) %></:item>
+  <:item title="Paid">
+    <%= if @order.paid, do: "Yes", else: "No" %>
+  </:item>
+  <:item :if={@order.paid} title="Payment date and time (UTC)">
+    <%= format_date_time(@order.paid_at) %>
+  </:item>
+</.list>
+
+<.table id="order-suborders" rows={@streams.suborders}>
+  <:col :if={@current_user.admin} :let={{_id, suborder}} label="Position ID">
+    <%= suborder.id %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Product ID">
+    <%= suborder.product.id %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Product name">
+    <%= suborder.product.name %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Position adding date and time (UTC)">
+    <%= format_date_time(suborder.inserted_at) %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Unit price at the time of adding">
+    PLN <%= format(suborder.unit_price) %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Quantity"><%= suborder.quantity %></:col>
+  <:col :let={{_id, suborder}} label="Subtotal">
+    PLN <%= format(Decimal.mult(suborder.unit_price, suborder.quantity)) %>
+  </:col>
+  <:action :let={{_id, suborder}}>
+    <.link patch={~p"/orders/#{@order}/show/#{suborder}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, suborder}}>
+    <.link 
+      id={"suborder-delete-#{suborder.id}"}
+      phx-click={js_delete(id, !@order.paid, %{s_id: "#{suborder.id}"})} 
+      data-confirm={data_confirm(@order)}
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.back navigate={~p"/orders"}>Back to orders</.back>
+
+<.modal 
+  :if={@live_action == :edit} 
+  id="order-modal-edit" 
+  show 
+  on_cancel={JS.patch(~p"/orders/#{@order}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.OrderLive.FormComponent}
+    id={@order.id}
+    title={@page_title}
+    action={@live_action}
+    order={@order}
+    patch={~p"/orders/#{@order}"}
+    admin={@current_user.admin}
+  />
+</.modal>
+
+<.modal 
+  :if={@live_action == :pay}
+  id="order-modal-pay" 
+  show 
+  on_cancel={JS.patch(~p"/orders/#{@order}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.OrderLive.PayComponent}
+    id={@order.id}
+    title={@page_title}
+    order={@order}
+    patch={~p"/orders/#{@order}"}
+    user={@current_user}
+  />
+</.modal>
+
+<.modal 
+  :if={@live_action == :edit_suborder} 
+  id="suborder-modal-edit" 
+  show 
+  on_cancel={JS.patch(~p"/orders/#{@order}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.SubOrderLive.FormComponent}
+    id={@order.id}
+    title={@page_title}
+    suborder={@suborder}
+    action={@live_action}
+    patch={~p"/orders/#{@order}"}
+    admin={@current_user.admin}
+  />
+</.modal>

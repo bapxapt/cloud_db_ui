@@ -1,0 +1,21 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* This file is for your main application CSS */
+
+.w-4\/10 {
+    width: 40%;
+}
+
+.w-250 {
+    max-width: 250px;
+}
+
+.bg-green {
+    background-color: rgb(232 252 236);
+}
+
+.bg-green-100\/90 {
+    background-color: rgb(232 252 236 / 0.9);
+}

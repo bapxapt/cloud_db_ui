@@ -1,0 +1,122 @@
+<.header>
+  Order position ID <%= @suborder.id %>
+  <:subtitle>A sub-order ID <%= @suborder.id %></:subtitle>
+  <:actions>
+    <.link patch={~p"/sub-orders/#{@suborder}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit order position (sub-order)</.button>
+    </.link>
+    <.link 
+      phx-click={JS.push("delete")} 
+      data-confirm={if !@suborder.order.paid_at, do: "Are you sure?"}
+    >
+      <.button>Delete</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Quantity"><%= @suborder.quantity %></:item>
+  <:item title="Unit price at the time of adding">
+    <%= unit_price(@suborder) %>
+  </:item>
+  <:item title="Subtotal">PLN <%= format(@suborder.subtotal) %></:item>
+  <:item title="Paid">
+    <%= if @suborder.order.paid_at, do: "Yes", else: "No" %>
+  </:item>
+  <:item 
+    :if={@suborder.order.paid_at} 
+    title="Payment date and time (UTC)"
+  >
+    <%= format_date_time(@suborder.order.paid_at) %>
+  </:item>
+</.list>
+
+<div class="mt-11"><.label>Owner</.label></div>
+<.table 
+  id="suborder-order-users" 
+  rows={Enum.with_index([@suborder.order.user], &{&2, &1})}
+>
+  <:col :let={{_id, user}} label="User ID"><%= user.id %></:col>
+  <:col :let={{_id, user}} label="E-mail"><%= user.email %></:col>
+  <:col :let={{_id, user}} label="E-mail confirmation date and time (UTC)">
+    <%= format_date_time(user.confirmed_at) %>
+  </:col>
+  <:col :let={{_id, user}} label="Balance">
+    PLN <%= format(user.balance) %>
+  </:col>
+  <:col :let={{_id, user}} label="Active">
+    <%= if user.active, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, user}} label="Administrator">
+    <%= if user.admin, do: "Yes" %>
+  </:col>
+</.table>
+
+<div class="mt-11"><.label>Order</.label></div>
+<.table 
+  id="suborder-orders" 
+  rows={Enum.with_index([@suborder.order], &{&2, &1})}
+>
+  <:col :let={{_id, order}} label="Order ID"><%= order.id %></:col>
+  <:col :let={{_id, order}} label="Paid">
+    <%= if order.paid_at, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, order}} label="Payment date and time (UTC)">
+    <%= format_date_time(order.paid_at) %>
+  </:col>
+</.table>
+
+<div class="mt-11"><.label>Product type</.label></div>
+<.table 
+  id="suborder-product-types" 
+  rows={Enum.with_index([@suborder.product.product_type], &{&2, &1})}
+>
+  <:col :let={{_id, type}} label="Product type ID"><%= type.id %></:col>
+  <:col :let={{_id, type}} label="Name"><%= type.name %></:col>
+  <:col :let={{_id, type}} label="Description">
+    <%= type.description %>
+  </:col>
+  <:col :let={{_id, type}} label="Assignable to products">
+    <%= if type.assignable, do: "Yes" %>
+  </:col>
+</.table>
+
+<div class="mt-11"><.label>Product</.label></div>
+<.table 
+  id="suborder-products" 
+  rows={Enum.with_index([@suborder.product], &{&2, &1})}
+>
+  <:col :let={{_id, product}} label="Product ID"><%= product.id %></:col>
+  <:col :let={{_id, product}} label="Name"><%= product.name %></:col>
+  <:col :let={{_id, product}} label="Description">
+    <%= product.description %>
+  </:col>
+  <:col :let={{_id, product}} label="Current unit price">
+    PLN <%= format(product.unit_price) %>
+  </:col>
+  <:col :let={{_id, product}} label="Orderable">
+    <%= if product.orderable, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, product}} label="Image">
+    <%= img(product.image_path, "product image", 45, @load_images?) %>
+  </:col>
+</.table>
+
+<.back navigate={~p"/sub-orders"}>Back to order positions</.back>
+
+<.modal 
+  :if={@live_action == :edit} 
+  id="suborder-modal" 
+  show 
+  on_cancel={JS.patch(~p"/sub-orders/#{@suborder}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.SubOrderLive.FormComponent}
+    id={@suborder.id}
+    title={@page_title}
+    action={@live_action}
+    suborder={@suborder}
+    patch={~p"/sub-orders/#{@suborder}"}
+    admin={@current_user.admin}
+  />
+</.modal>
