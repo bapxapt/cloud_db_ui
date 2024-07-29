@@ -1,0 +1,54 @@
+<.header>
+  Listing product types
+  <:actions>
+    <.link patch={~p"/product_types/new"}>
+      <.button>New product type</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="product-types"
+  rows={@streams.types}
+  row_click={fn {_id, type} -> JS.navigate(~p"/product_types/#{type}") end}
+>
+  <:col :let={{_id, type}} label="ID"><%= type.id %></:col>
+  <:col :let={{_id, type}} label="Name"><%= type.name %></:col>
+  <:col :let={{_id, type}} label="Description">
+    <%= type.description %>
+  </:col>
+  <:col :let={{_id, type}} label="Product count"><%= type.products %></:col>
+  <:col :let={{_id, type}} label="Assignable to products">
+    <%= if type.assignable, do: "Yes" %>
+  </:col>
+  <:action :let={{_id, type}}>
+    <div class="sr-only">
+      <.link navigate={~p"/product_types/#{type}"}>Show</.link>
+    </div>
+    <.link patch={~p"/product_types/#{type}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, type}}>
+    <.link
+      phx-click={js_delete(id, type.products == 0, type)}
+      data-confirm={if type.products == 0, do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal 
+  :if={@live_action in [:new, :edit]} 
+  id="product_type-modal"
+  show 
+  on_cancel={JS.patch(~p"/product_types")}
+>
+  <.live_component
+    module={CloudDbUiWeb.ProductTypeLive.FormComponent}
+    id={"product-type-#{@type.id || :new}"}
+    title={@page_title}
+    action={@live_action}
+    type={@type}
+    patch={~p"/product_types"}
+  />
+</.modal>
