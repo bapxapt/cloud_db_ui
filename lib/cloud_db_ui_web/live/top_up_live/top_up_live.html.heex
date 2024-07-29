@@ -1,0 +1,43 @@
+<div class="mx-auto max-w-2xl">
+  <.header>
+    Top up your balance
+    <:subtitle>User ID <%= @current_user.id %></:subtitle>
+    <:actions>
+    </:actions>
+  </.header>
+
+  <.simple_form
+    for={@form}
+    id="top-up-form"
+    bg_class="bg-green"
+    phx-change="validate"
+    phx-submit="save"
+  >
+    <.list>
+      <:item title="Current balance">
+        <%= current_balance(@current_user) %>
+      </:item>
+    </.list>
+    <.input
+      field={@form[:top_up_amount]}
+      type="text"
+      inputmode="decimal"
+      label="Amount to add, PLN"
+      value={format(@form[:top_up_amount].value)}
+    />
+    <.list>
+      <:item title="Balance after topping up">
+        <%= maybe_format(@form[:balance].value, @form.source.valid?, "PLN") %>
+      </:item>
+    </.list>
+    <:actions>
+      <.button 
+        phx-disable-with="Topping up..."
+        data-confirm={if @form.source.valid?, do: "Are you sure?"}
+      >
+        Top up
+      </.button>
+    </:actions>
+  </.simple_form>
+  <.back navigate={~p"/orders"}>Back to orders</.back>
+</div>

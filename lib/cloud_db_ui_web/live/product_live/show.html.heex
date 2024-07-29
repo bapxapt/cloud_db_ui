@@ -1,0 +1,92 @@
+<.header>
+  Product ID <%= @product.id %>
+  <:subtitle></:subtitle>
+  <:actions>
+    <.simple_form 
+      style="display: inline-block;" 
+      margin_classes="" 
+      bg_class="" 
+      for={@form} 
+      id={"order-form-#{@product.id}"} 
+      phx-submit="order"
+    >
+      <div style="display: flex; align-items: baseline; gap: 5px;">
+        <.input 
+          style="width: 80px;" 
+          root_div_style="align-self: end;" 
+          margin_class="" 
+          type="number" 
+          name="sub_order[quantity]" 
+          value="1" 
+          min="1" 
+          max={SubOrder.quantity_limit()}
+          step="1"
+        />
+        <.button>Order</.button>
+      </div>
+    </.simple_form>
+    <.link 
+      class={button_class()} 
+      patch={~p"/products/#{@product}/show/edit"} 
+      phx-click={JS.push_focus()}
+    >
+      Edit product
+    </.link>
+    <.link 
+      class={button_class()} 
+      phx-click={JS.push("delete")} 
+      data-confirm={data_confirm(@current_user, @product)}
+    >
+      Delete
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item :if={User.admin?(@current_user)} title="Type ID">
+    <%= @product.product_type_id %>
+  </:item>
+  <:item title="Type"><%= @product.product_type.name %></:item>
+  <:item title="Name"><%= @product.name %></:item>
+  <:item title="Description"><%= @product.description %></:item>
+  <:item title="Unit price">PLN <%= format(@product.unit_price) %></:item>
+  <:item :if={@product.image_path != nil} title="Image">
+    <%= img(@product.image_path, "product image", 100) %>
+  </:item>
+</.list>
+
+<div :if={User.admin?(@current_user)} class="mt-11">
+  <.label><%= table_header(@product) %></.label>
+</div>
+<.table 
+  :if={User.admin?(@current_user) and @product.orders != 0} 
+  id="product-type-products" 
+  rows={@streams.orders}
+>
+  <:col :let={{_id, order}} label="ID"><%= order.id %></:col>
+  <:col :let={{_id, order}} label="User ID"><%= order.user_id %></:col>
+  <:col :let={{_id, order}} label="User e-mail"><%= order.user.email %></:col>
+  <:col :let={{_id, order}} label="Total">PLN <%= format(order.total) %></:col>
+  <:col :let={{_id, order}} label="Paid"><%= if order.paid, do: "Yes" %></:col>
+  <:col :let={{_id, order}} label="Payment date and time (UTC)">
+    <%= format_date_time(order.paid_at) %>
+  </:col>
+</.table>
+
+<.back navigate={~p"/products"}>Back to products</.back>
+
+<.modal 
+  :if={User.admin?(@current_user) && @live_action == :edit} 
+  id="product-modal" 
+  show 
+  on_cancel={JS.patch(~p"/products/#{@product}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.ProductLive.FormComponent}
+    id={"product-#{@product.id}"}
+    title={@page_title}
+    action={@live_action}
+    product={@product}
+    patch={~p"/products/#{@product}"}
+  />
+</.modal>
