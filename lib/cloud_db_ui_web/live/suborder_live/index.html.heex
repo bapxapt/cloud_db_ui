@@ -1,0 +1,73 @@
+<.header>
+  Listing order positions (sub-orders)
+  <:actions>
+    <.link patch={~p"/sub-orders/new"}>
+      <.button>New order position</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="suborders"
+  rows={@streams.suborders}
+  row_click={fn {_id, subord} -> JS.navigate(~p"/sub-orders/#{subord}") end}
+>
+  <:col :let={{_id, suborder}} label="ID"><%= suborder.id %></:col>
+  <:col :let={{_id, suborder}} label="User ID">
+    <%= suborder.order.user.id %>
+  </:col>
+  <:col :let={{_id, suborder}} label="User e-mail">
+    <%= suborder.order.user.email %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Order ID"><%= suborder.order_id %></:col>
+  <:col :let={{_id, suborder}} label="Product ID">
+    <%= suborder.product_id %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Product name">
+    <%= suborder.product.name %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Quantity"><%= suborder.quantity %></:col>
+  <:col :let={{_id, suborder}} label="Unit price, PLN">
+    <%= format(suborder.unit_price) %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Subtotal, PLN">
+    <%= format(suborder.subtotal) %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Paid">
+    <%= if suborder.order.paid_at, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, suborder}} label="Payment date and time (UTC)">
+    <%= format(suborder.order.paid_at) %>
+  </:col>
+  <:action :let={{_id, suborder}}>
+    <div class="sr-only">
+      <.link navigate={~p"/sub-orders/#{suborder}"}>Show</.link>
+    </div>
+    <.link patch={~p"/sub-orders/#{suborder}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, suborder}}>
+    <.link
+      phx-click={js_delete(id, !suborder.order.paid_at, suborder)}
+      data-confirm={if !suborder.order.paid_at, do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal 
+  :if={@suborder && @live_action in [:new, :edit]} 
+  id="suborder-modal" 
+  show 
+  on_cancel={JS.patch(~p"/sub-orders")}
+>
+  <.live_component
+    module={CloudDbUiWeb.SubOrderLive.FormComponent}
+    id={"suborder-#{@suborder.id || :new}"}
+    title={@page_title}
+    action={@live_action}
+    suborder={@suborder}
+    patch={~p"/sub-orders"}
+    admin={@current_user.admin}
+  />
+</.modal>

@@ -1,0 +1,119 @@
+<.header>
+  Listing orders
+  <:actions>
+    <.link patch={~p"/orders/new"}>
+      <.button>New order</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<div class="mt-11">
+  <.filter_form 
+    id="filter-form" 
+    meta={@meta} 
+    on_change="filter" 
+    rows={2} 
+    columns={4} 
+    fields={filter_form_field_opts(@current_user)} 
+  />
+</div>
+
+<Flop.Phoenix.table
+  :if={@meta.total_count == nil or @meta.total_count > 0} 
+  id="orders-flop" 
+  items={@streams.orders} 
+  meta={@meta} 
+  on_sort={JS.push("sort")} 
+  row_click={fn {_id, order} -> JS.navigate(~p"/orders/#{order}") end}
+>
+  <:col :let={{_id, order}} field={:id} label="ID"><%= order.id %></:col>
+  <:col 
+    :if={@current_user.admin} 
+    :let={{_id, order}} 
+    field={:user_id} 
+    label="User ID"
+  >
+    <%= order.user_id %>
+  </:col>
+  <:col :if={@current_user.admin} :let={{_id, order}} label="User e-mail">
+    <%= order.user.email %>
+  </:col>
+  <:col :let={{_id, order}} :if={@current_user.admin} label="Product IDs">
+    <%= comma_separated_values(Order.product_field_values!(order, :id)) %>
+  </:col>
+  <:col :let={{_id, order}} label="Product names">
+    <%= comma_separated_values(Order.product_field_values!(order, :name)) %>
+  </:col>
+  <:col 
+    :let={{_id, order}} 
+    field={:inserted_at} 
+    label="Creation date and time (UTC)"
+  >
+    <%= format(order.inserted_at) %>
+  </:col>
+  <:col :let={{_id, order}} field={:total_sortable} label="Total, PLN">
+    <%= format(order.total) %>
+  </:col>
+  <:col :let={{_id, order}} field={:paid_at} label="Paid">
+    <%= if order.paid, do: "Yes" %>
+  </:col>
+  <:col 
+    :let={{_id, order}} 
+    field={:paid_at} 
+    label="Payment date and time (UTC)"
+  >
+    <%= format(order.paid_at) %>
+  </:col>
+  <:action :let={{_id, order}}>
+    <div class="sr-only">
+      <.link navigate={~p"/orders/#{order}"}>Show</.link>
+    </div>
+    <.link patch={~p"/orders/#{order}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{_id, order}}>
+    <.link patch={~p"/orders/#{order}/pay"}>Pay</.link>
+  </:action>
+  <:action :let={{id, order}}>
+    <.link
+      phx-click={js_delete(id, Order.deletable?(order, @current_user), order)}
+      data-confirm={if !order.paid, do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:action>
+</Flop.Phoenix.table>
+
+<.pagination meta={@meta} />
+
+<.modal 
+  :if={@order && @live_action in [:new, :edit]} 
+  id="order-modal-edit" 
+  show 
+  on_cancel={JS.patch(~p"/orders")}
+>
+  <.live_component
+    module={CloudDbUiWeb.OrderLive.FormComponent}
+    id={"order-#{@order.id || :new}"}
+    title={@page_title}
+    action={@live_action}
+    order={@order}
+    patch={~p"/orders"}
+    admin={@current_user.admin}
+  />
+</.modal>
+
+<.modal 
+  :if={@order && @live_action == :pay} 
+  id="order-modal-pay" 
+  show 
+  on_cancel={JS.patch(~p"/orders")}
+>
+  <.live_component
+    module={CloudDbUiWeb.OrderLive.PayComponent}
+    id={"pay-order-#{@order.id}"}
+    title={@page_title}
+    order={@order}
+    patch={~p"/orders"}
+    user={@current_user}
+  />
+</.modal>

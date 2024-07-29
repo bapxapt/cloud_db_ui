@@ -1,0 +1,137 @@
+<.header>
+  Product ID <%= if @product, do: @product.id %>
+  <:subtitle></:subtitle>
+  <:actions :if={@product}>
+    <.simple_form 
+      style="display: inline-block;" 
+      margin_classes="" 
+      bg_class="" 
+      for={@form} 
+      id={"order-form-#{@product.id}"} 
+      phx-submit="order" 
+    >
+      <div style="display: flex; align-items: baseline; gap: 5px;">
+        <input 
+          type="hidden" 
+          name="sub_order[product_id]" 
+          value={@product.id} 
+        />
+        <.input 
+          style="width: 80px;" 
+          root_div_style="align-self: end;" 
+          margin_class="" 
+          type="number" 
+          name="sub_order[quantity]" 
+          value="1" 
+          min="1" 
+          max={SubOrder.quantity_limit()} 
+          step="1" 
+        />
+        <.button>Order</.button>
+      </div>
+    </.simple_form>
+    <.link 
+      class={button_class()} 
+      patch={~p"/products/#{@product}/show/edit"} 
+      phx-click={JS.push_focus()} 
+    >
+      Edit product
+    </.link>
+    <.link 
+      class={button_class()} 
+      phx-click={JS.push("delete")} 
+      data-confirm={data_confirm(@current_user, @product)} 
+    >
+      Delete
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Name"><%= if @product, do: @product.name %></:item>
+  <:item title="Creation date and time (UTC)">
+    <%= if @product, do: format(@product.inserted_at) %>
+  </:item>
+  <:item title="Description">
+    <%= if @product, do: @product.description %>
+  </:item>
+  <:item title="Unit price">
+    PLN <%= if @product, do: format(@product.unit_price) %>
+  </:item>
+  <:item title="Orderable">
+    <%= if @product, do: (if @product.orderable, do: "Yes", else: "No") %>
+  </:item>
+  <:item 
+    :if={display_current_image_path?(@current_user, @product)} 
+    title="Current image path"
+  >
+    <%= if @product, do: @product.image_path %>
+  </:item>
+  <:item :if={!@product or @product.image_path != nil} title="Current image">
+    <%= if @product, do: img(@product.image_path, "product image", 100) %>
+  </:item>
+  <:item :if={User.admin?(@current_user)} title="Order count">
+    <%= if @product, do: @product.orders %>
+  </:item>
+  <:item :if={User.admin?(@current_user)} title="Paid order count">
+    <%= if @product, do: @product.paid_orders %>
+  </:item>
+</.list>
+
+<div :if={User.admin?(@current_user)} class="mt-11">
+  <.label>Product type</.label>
+</div>
+
+<.table
+  :if={User.admin?(@current_user)} 
+  id="product-product-type" 
+  rows={if @product, do: [@product.product_type], else: []}
+>
+  <:col :let={type} label="ID"><%= type.id %></:col>
+  <:col :let={type} label="Name"><%= type.name %></:col>
+  <:col :let={type} label="Description"><%= type.description %></:col>
+  <:col :let={type} label="Assignable to products">
+    <%= if type.assignable, do: "Yes" %>
+  </:col>
+</.table>
+
+<div :if={User.admin?(@current_user)} class="mt-11">
+  <.label><%= table_header(@product) %></.label>
+</div>
+
+<.table 
+  :if={User.admin?(@current_user) and (!@product or @product.orders != 0)} 
+  id="product-type-products" 
+  rows={@streams.orders}
+>
+  <:col :let={{_id, order}} label="ID"><%= order.id %></:col>
+  <:col :let={{_id, order}} label="User ID"><%= order.user_id %></:col>
+  <:col :let={{_id, order}} label="User e-mail"><%= order.user.email %></:col>
+  <:col :let={{_id, order}} label="Total, PLN">
+    <%= format(order.total) %>
+  </:col>
+  <:col :let={{_id, order}} label="Paid">
+    <%= if order.paid_at, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, order}} label="Payment date and time (UTC)">
+    <%= format(order.paid_at) %>
+  </:col>
+</.table>
+
+<.back navigate={~p"/products"}>Back to products</.back>
+
+<.modal 
+  :if={@product && User.admin?(@current_user) && @live_action == :edit} 
+  id="product-modal" 
+  show 
+  on_cancel={JS.patch(~p"/products/#{@product}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.ProductLive.FormComponent}
+    id={"product-#{@product.id}"}
+    title={@page_title}
+    action={@live_action}
+    product={@product}
+    patch={~p"/products/#{@product}"}
+  />
+</.modal>

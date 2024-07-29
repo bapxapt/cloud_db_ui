@@ -1,0 +1,92 @@
+<.header>
+  User ID <%= if @user, do: @user.id %>
+  <:subtitle></:subtitle>
+  <:actions :if={@user}>
+    <.link 
+      class={button_class()} 
+      patch={~p"/users/#{@user}/show/edit"} 
+      phx-click={JS.push_focus()}
+    >
+      Edit user
+    </.link>
+    <.link 
+      class={button_class()} 
+      phx-click={JS.push("delete")} 
+      data-confirm={if User.deletable?(@user), do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="E-mail address"><%= if @user, do: @user.email %></:item>
+  <:item title="Registration date and time (UTC)">
+    <%= if @user, do: format(@user.inserted_at) %>
+  </:item>
+  <:item title="E-mail confirmed">
+    <%= if @user, do: (if @user.confirmed_at, do: "Yes", else: "No") %>
+  </:item>
+  <:item 
+    :if={!@user or @user.confirmed_at} 
+    title="E-mail confirmation date and time (UTC)"
+  >
+    <%= if @user, do: format(@user.confirmed_at) %>
+  </:item>
+  <:item title="Balance">PLN <%= if @user, do: format(@user.balance) %></:item>
+  <:item title="Active">
+    <%= if @user, do: (if @user.active, do: "Yes", else: "No") %>
+  </:item>
+  <:item title="Administrator">
+    <%= if @user, do: (if @user.admin, do: "Yes", else: "No") %>
+  </:item>
+  <:item :if={!@user or !@user.admin} title="Order count">
+    <%= if @user, do: length(@user.orders) %>
+  </:item>
+  <:item :if={!@user or !@user.admin} title="Paid order count">
+    <%= if @user, do: @user.paid_orders %>
+  </:item>
+</.list>
+
+<div class="mt-11"><.label><%= table_header(@user) %></.label></div>
+
+<.table 
+  :if={!@user or is_list(@user.orders) and @user.orders != []} 
+  id="user-orders" 
+  rows={@streams.orders}
+>
+  <:col :let={{_id, order}} label="ID"><%= order.id %></:col>
+  <:col :let={{_id, order}} label="Product IDs">
+    <%= comma_separated_values(Order.product_field_values!(order, :id)) %>
+  </:col>
+  <:col :let={{_id, order}} label="Product names">
+    <%= comma_separated_values(Order.product_field_values!(order, :name)) %>
+  </:col>
+  <:col :let={{_id, order}} label="Total, PLN">
+    <%= format(order.total) %>
+  </:col>
+  <:col :let={{_id, order}} label="Paid">
+    <%= if order.paid_at != nil, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, order}} label="Payment date and time (UTC)">
+    <%= format(order.paid_at) %>
+  </:col>
+</.table>
+
+<.back navigate={~p"/users"}>Back to users</.back>
+
+<.modal 
+  :if={@user && @live_action == :edit} 
+  id="user-modal" 
+  show 
+  on_cancel={JS.patch(~p"/users/#{@user}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.UserLive.FormComponent} 
+    id={"user-#{@user.id}"} 
+    title={@page_title} 
+    action={@live_action} 
+    user={@user} 
+    patch={~p"/users/#{@user}"} 
+  />
+</.modal>

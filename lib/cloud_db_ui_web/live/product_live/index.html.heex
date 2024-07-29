@@ -1,0 +1,131 @@
+<.header>
+  Listing products
+  <:actions>
+    <.link patch={~p"/products/new"}><.button>New product</.button></.link>
+  </:actions>
+</.header>
+
+<div class="mt-11">
+  <.filter_form 
+    id="filter-form" 
+    meta={@meta} 
+    on_change="filter" 
+    rows={2} 
+    columns={4} 
+    fields={filter_form_field_opts(@current_user)} 
+  />
+</div>
+
+<Flop.Phoenix.table
+  :if={@meta.total_count == nil or @meta.total_count > 0} 
+  id="products-flop" 
+  items={@streams.products} 
+  meta={@meta} 
+  on_sort={JS.push("sort")} 
+  row_click={fn {_id, product} -> JS.navigate(~p"/products/#{product}") end}
+>
+  <:col :let={{_id, product}} field={:id} label="ID"><%= product.id %></:col>
+  <:col 
+    :if={User.admin?(@current_user)} 
+    :let={{_id, product}} 
+    field={:product_type_id} 
+    label="Type ID"
+  >
+    <%= product.product_type_id %>
+  </:col>
+  <:col :let={{_id, product}} label="Product type">
+    <%= product.product_type.name %>
+  </:col>
+  <:col :let={{_id, product}} field={:name} label="Name">
+    <%= product.name %>
+  </:col>
+  <:col :let={{_id, product}} field={:description} label="Description">
+    <%= product.description %>
+  </:col>
+  <:col :let={{_id, product}} field={:unit_price} label="Unit price, PLN">
+    <%= format(product.unit_price) %>
+  </:col>
+  <:col 
+    :if={User.admin?(@current_user)}
+    :let={{_id, product}} 
+    field={:inserted_at} 
+    label="Creation date and time (UTC)"
+  >
+    <%= format(product.inserted_at) %>
+  </:col>
+  <:col 
+    :if={User.admin?(@current_user)} 
+    :let={{_id, product}}
+    field={:orderable}
+    label="Orderable"
+  >
+    <%= if product.orderable, do: "Yes" %>
+  </:col>
+  <:col 
+    :if={User.admin?(@current_user)} 
+    :let={{_id, product}}
+    label="Paid orders"
+  >
+    <%= product.paid_orders %>
+  </:col>
+  <:col :let={{_id, product}} label="Image">
+    <%= img(product.image_path, "product image", 45, @load_images?) %>
+  </:col>
+  <:action :let={{_id, product}}>
+    <div class="sr-only">
+      <.link navigate={~p"/products/#{product}"}>Show</.link>
+    </div>
+    <.link patch={~p"/products/#{product}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, product}}>
+    <.link
+      phx-click={js_delete(id, product.paid_orders == 0, product)}
+      data-confirm={Actions.data_confirm(@current_user, product)}
+    >
+      Delete
+    </.link>
+  </:action>
+  <:action :let={{_id, product}}>
+    <.simple_form
+      margin_classes=""
+      bg_class=""
+      for={@form}
+      id={"order-form-#{product.id}"}
+      phx-submit="order"
+    >
+      <.input type="hidden" name="sub_order[product_id]" value={product.id} />
+      <div class="flex" style="gap: 5px;">
+        <.input 
+          style="width: 90px;" 
+          margin_class="" 
+          type="number" 
+          name="sub_order[quantity]" 
+          value="1" 
+          min="1" 
+          max={SubOrder.quantity_limit()} 
+          step="1" 
+        />
+        <.button>Order</.button>
+      </div>
+    </.simple_form>
+  </:action>
+</Flop.Phoenix.table>
+
+<.pagination meta={@meta} />
+
+<.modal 
+  :if={@product && User.admin?(@current_user) && @live_action in [:new, :edit]}
+  id="product-modal" 
+  inner_block_id={"product-#{@product.id || :new}"} 
+  show 
+  on_cancel={JS.patch(~p"/products")}
+>
+  <.live_component
+    module={CloudDbUiWeb.ProductLive.FormComponent}
+    id={"product-#{@product.id || :new}"}
+    title={@page_title}
+    action={@live_action}
+    product={@product}
+    patch={~p"/products"}
+  />
+</.modal>

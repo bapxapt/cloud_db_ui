@@ -1,0 +1,77 @@
+<.header>
+  Listing product types
+  <:actions>
+    <.link patch={~p"/product_types/new"}>
+      <.button>New product type</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<div class="mt-11">
+  <.filter_form 
+    id="filter-form" 
+    meta={@meta} 
+    on_change="filter" 
+    rows={2} 
+    columns={4} 
+    fields={filter_form_field_opts(@current_user)} 
+  />
+</div>
+
+<Flop.Phoenix.table
+  :if={@meta.total_count == nil or @meta.total_count > 0} 
+  id="product-types-flop" 
+  items={@streams.types} 
+  meta={@meta} 
+  on_sort={JS.push("sort")} 
+  row_click={fn {_id, type} -> JS.navigate(~p"/product_types/#{type}") end}
+>
+  <:col :let={{_id, type}} field={:id} label="ID"><%= type.id %></:col>
+  <:col :let={{_id, type}} field={:name} label="Name"><%= type.name %></:col>
+  <:col :let={{_id, type}} field={:description} label="Description">
+    <%= type.description %>
+  </:col>
+  <:col 
+    :let={{_id, type}} 
+    field={:inserted_at} 
+    label="Creation date and time (UTC)"
+  >
+    <%= format(type.inserted_at) %>
+  </:col>
+  <:col :let={{_id, type}} field={:assignable} label="Assignable to products">
+    <%= if type.assignable, do: "Yes" %>
+  </:col>
+  <:col :let={{_id, type}} label="Products"><%= type.products %></:col>
+  <:action :let={{_id, type}}>
+    <div class="sr-only">
+      <.link navigate={~p"/product_types/#{type}"}>Show</.link>
+    </div>
+    <.link patch={~p"/product_types/#{type}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, type}}>
+    <.link
+      phx-click={js_delete(id, type.products == 0, type)}
+      data-confirm={if type.products == 0, do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:action>
+</Flop.Phoenix.table>
+
+<.pagination meta={@meta} />
+
+<.modal 
+  :if={@type && @live_action in [:new, :edit]} 
+  id="product_type-modal"
+  show 
+  on_cancel={JS.patch(~p"/product_types")}
+>
+  <.live_component
+    module={CloudDbUiWeb.ProductTypeLive.FormComponent}
+    id={"product-type-#{@type.id || :new}"}
+    title={@page_title}
+    action={@live_action}
+    type={@type}
+    patch={~p"/product_types"}
+  />
+</.modal>

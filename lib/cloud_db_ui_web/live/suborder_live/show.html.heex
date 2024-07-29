@@ -1,0 +1,121 @@
+<.header>
+  Order position (sub-order) ID <%= if @suborder, do: @suborder.id %>
+  <:subtitle></:subtitle>
+  <:actions :if={@suborder}>
+    <.link 
+      class={button_class()}  
+      patch={~p"/sub-orders/#{@suborder}/show/edit"} 
+      phx-click={JS.push_focus()}
+    >
+      Edit order position (sub-order)
+    </.link>
+    <.link 
+      class={button_class()} 
+      phx-click={JS.push("delete")} 
+      data-confirm={if !@suborder.order.paid_at, do: "Are you sure?"}
+    >
+      Delete
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Quantity"><%= if @suborder, do: @suborder.quantity %></:item>
+  <:item title="Unit price at the time of adding">
+    <%= if @suborder, do: unit_price(@suborder) %>
+  </:item>
+  <:item title="Subtotal">
+    PLN <%= if @suborder, do: format(@suborder.subtotal) %>
+  </:item>
+  <:item title="Paid"><%= if @suborder, do: paid(@suborder) %></:item>
+  <:item 
+    :if={@suborder && @suborder.order.paid_at} 
+    title="Payment date and time (UTC)"
+  >
+    <%= format(@suborder.order.paid_at) %>
+  </:item>
+</.list>
+
+<div class="mt-11"><.label>Owner</.label></div>
+
+<.table 
+  id="suborder-order-users" 
+  rows={if @suborder, do: [@suborder.order.user], else: []}
+>
+  <:col :let={user} label="User ID"><%= user.id %></:col>
+  <:col :let={user} label="E-mail"><%= user.email %></:col>
+  <:col :let={user} label="E-mail confirmation date and time (UTC)">
+    <%= format(user.confirmed_at) %>
+  </:col>
+  <:col :let={user} label="Balance, PLN"><%= format(user.balance) %></:col>
+  <:col :let={user} label="Active"><%= if user.active, do: "Yes" %></:col>
+  <:col :let={user} label="Administrator">
+    <%= if user.admin, do: "Yes" %>
+  </:col>
+</.table>
+
+<div class="mt-11"><.label>Order</.label></div>
+
+<.table 
+  id="suborder-orders" 
+  rows={if @suborder, do: [@suborder.order], else: []}
+>
+  <:col :let={order} label="Order ID"><%= order.id %></:col>
+  <:col :let={order} label="Paid"><%= if order.paid_at, do: "Yes" %></:col>
+  <:col :let={order} label="Payment date and time (UTC)">
+    <%= format(order.paid_at) %>
+  </:col>
+</.table>
+
+<div class="mt-11"><.label>Product type</.label></div>
+
+<.table 
+  id="suborder-product-types" 
+  rows={if @suborder, do: [@suborder.product.product_type], else: []}
+>
+  <:col :let={type} label="Product type ID"><%= type.id %></:col>
+  <:col :let={type} label="Name"><%= type.name %></:col>
+  <:col :let={type} label="Description"><%= type.description %></:col>
+  <:col :let={type} label="Assignable to products">
+    <%= if type.assignable, do: "Yes" %>
+  </:col>
+</.table>
+
+<div class="mt-11"><.label>Product</.label></div>
+
+<.table 
+  id="suborder-products" 
+  rows={if @suborder, do: [@suborder.product], else: []}
+>
+  <:col :let={product} label="Product ID"><%= product.id %></:col>
+  <:col :let={product} label="Name"><%= product.name %></:col>
+  <:col :let={product} label="Description"><%= product.description %></:col>
+  <:col :let={product} label="Current unit price, PLN">
+    <%= format(product.unit_price) %>
+  </:col>
+  <:col :let={product} label="Orderable">
+    <%= if product.orderable, do: "Yes" %>
+  </:col>
+  <:col :let={product} label="Image">
+    <%= img(product.image_path, "product image", 45, @load_images?) %>
+  </:col>
+</.table>
+
+<.back navigate={~p"/sub-orders"}>Back to order positions</.back>
+
+<.modal 
+  :if={@suborder && @live_action == :edit} 
+  id="suborder-modal" 
+  show 
+  on_cancel={JS.patch(~p"/sub-orders/#{@suborder}")}
+>
+  <.live_component
+    module={CloudDbUiWeb.SubOrderLive.FormComponent}
+    id={"suborder-#{@suborder.id}"}
+    title={@page_title}
+    action={@live_action}
+    suborder={@suborder}
+    patch={~p"/sub-orders/#{@suborder}"}
+    admin={@current_user.admin}
+  />
+</.modal>

@@ -1,0 +1,58 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* This file is for your main application CSS */
+
+a.py-2.px-3 {
+  display: inline-block;
+}
+
+div.flex-none > a, div.flex-none > form {
+  margin-right: 5px;
+}
+
+div.flex-none > a:last-child {
+  margin-right: 0px;
+}
+
+.duration-300 {
+  transition-duration: 300ms;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.float-right {
+  float: right;
+}
+
+.overflow-clip {
+  overflow: clip;
+}
+
+select[id^='flop_filters_'] {
+  line-height: 1.5rem;
+}
+
+td > a {
+  font-weight: 600;
+  padding: 1rem 0;
+}
+
+td > a:hover {
+  text-decoration: underline;
+}
+
+td:first-child {
+  font-weight: 600;
+}
+
+.w-4\/10 {
+  width: 40%;
+}
+
+.w-250 {
+  max-width: 250px;
+}
