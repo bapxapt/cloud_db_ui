@@ -21,21 +21,20 @@ defmodule CloudDbUiWeb.ConnCase do
     endpoint: CloudDbUiWeb.Endpoint,
     router: CloudDbUiWeb.Router
 
+  require Phoenix.LiveViewTest
+
+  import CloudDbUiWeb.Utilities
+  import Phoenix.{ConnTest, LiveViewTest}
+
   alias CloudDbUi.Accounts.User
   alias CloudDbUi.Products.{Product, ProductType}
   alias CloudDbUi.Orders.{Order, SubOrder}
   alias CloudDbUi.{ProductsFixtures, OrdersFixtures, AccountsFixtures}
   alias Phoenix.LiveViewTest.View
 
-  import CloudDbUiWeb.Utilities
-  import Phoenix.{ConnTest, LiveViewTest}
-
-  require Phoenix.LiveViewTest
-
   @type text_filter() :: String.t() | %Regex{} | nil
   @type form_data() :: keyword(%{atom() => any()}) | %{atom() => %{atom() => any()}}
-  @type redirect() :: CloudDbUi.Type.redirect()
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
+  @type redirect_error() :: CloudDbUi.Type.redirect_error()
   @type upload_entry() :: CloudDbUi.Type.upload_entry()
   @type params() :: CloudDbUi.Type.params()
 
@@ -134,11 +133,12 @@ defmodule CloudDbUiWeb.ConnCase do
   Retrieve a list of form error text strings.
   A `field` can be passed to narrow down the results.
   """
-  @spec form_errors(%View{}, String.t(), atom()) :: [String.t()]
-  def form_errors(%View{} = live_view, form_selector, field) do
-    live_view
-    |> render(form_selector <> " div[phx-feedback-for$='[#{field}]']")
-    |> form_errors()
+  @spec form_errors(String.t()) :: [String.t()]
+  def form_errors(rendered) when is_binary(rendered) do
+    ~r/(?<=flex-none"><\/span>)[^<]+/
+    |> Regex.scan(rendered)
+    |> List.flatten()
+    |> Enum.map(&String.trim/1)
   end
 
   @spec form_errors(%View{}, String.t()) :: [String.t()]
@@ -148,12 +148,11 @@ defmodule CloudDbUiWeb.ConnCase do
     |> form_errors()
   end
 
-  @spec form_errors(String.t()) :: [String.t()]
-  def form_errors(rendered) when is_binary(rendered) do
-    ~r/(?<="><\/span>)[^<]*(?=<)/
-    |> Regex.scan(rendered)
-    |> List.flatten()
-    |> Enum.map(&String.trim/1)
+  @spec form_errors(%View{}, String.t(), atom()) :: [String.t()]
+  def form_errors(%View{} = live_view, form_selector, field) do
+    live_view
+    |> render(form_selector <> " div[phx-feedback-for$='[#{field}]']")
+    |> form_errors()
   end
 
   @doc """
@@ -212,7 +211,8 @@ defmodule CloudDbUiWeb.ConnCase do
   @doc """
   `render_click()` an `element()` within a `live_view`.
   """
-  @spec click(%View{}, String.t(), text_filter()) :: html_or_redirect()
+  @spec click(%View{}, String.t(), text_filter()) ::
+          String.t() | redirect_error()
   def click(%View{} = live_view, selector, text_filter \\ nil) do
     live_view
     |> element(selector, text_filter)
@@ -222,7 +222,8 @@ defmodule CloudDbUiWeb.ConnCase do
   @doc """
   `render_change()` a `form()` with `form_data`.
   """
-  @spec change(%View{}, String.t(), form_data()) :: html_or_redirect()
+  @spec change(%View{}, String.t(), form_data()) ::
+          String.t() | redirect_error()
   def change(%View{} = live_view, selector, form_data) do
     live_view
     |> form(selector, form_data)
@@ -232,7 +233,8 @@ defmodule CloudDbUiWeb.ConnCase do
   @doc """
   `render_submit()` `form_data` into a `form()`.
   """
-  @spec submit(%View{}, String.t(), form_data()) :: html_or_redirect()
+  @spec submit(%View{}, String.t(), form_data()) ::
+          String.t() | redirect_error()
   def submit(%View{} = live_view, selector, form_data \\ %{}) do
     live_view
     |> form(selector, form_data)
@@ -253,7 +255,7 @@ defmodule CloudDbUiWeb.ConnCase do
   `render_upload()` a `file_input()` in a form.
   """
   @spec upload(%View{}, String.t(), atom(), upload_entry()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   def upload(%View{} = live, form_selector, upload_name, entry) do
     live
     |> file_input(form_selector, upload_name, [entry])
@@ -265,7 +267,7 @@ defmodule CloudDbUiWeb.ConnCase do
   corresponding to the `index`.
   """
   @spec filter(%View{}, String.t(), non_neg_integer(), any()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   def filter(%View{} = live, selector \\ "#filter-form", index, value) do
     change(live, selector, %{filters: %{index => %{value: value}}})
   end
@@ -471,30 +473,56 @@ defmodule CloudDbUiWeb.ConnCase do
   def refute_match(value, pattern), do: refute(value =~ pattern)
 
   @doc """
-  Check that a user gets redirected to the log-in page with an expected
-  flash message.
+  Check that a logged-in user gets redirected to the main page (`"/"`)
+  with an expected flash message.
   """
-  @spec assert_redirect_to_log_in_page({:error, {:redirect, redirect()}}) ::
-          boolean()
-  def assert_redirect_to_log_in_page({:error, {:redirect, redirect}}) do
-    assert(redirect.to == ~p"/users/log_in")
-    assert(redirect.flash["error"] =~ "You must log in to access this page.")
+  @spec assert_redirect_to_main_page(%Plug.Conn{}, String.t()) :: boolean()
+  def assert_redirect_to_main_page(
+        %Plug.Conn{} = conn,
+        path,
+        flash_title \\ "Only an administrator may access this page."
+      ) do
+    {:error, {_, %{to: to, flash: flash}}} = live(conn, path)
+
+    assert(to == ~p"/")
+    assert(flash["error"] =~ flash_title)
   end
 
   @doc """
-  Check that a user gets redirected to the main page with an expected
-  flash message.
+  Check that a not-logged-in guest gets redirected to the log-in page
+  with an expected flash title.
   """
-  @spec assert_redirect_to_main_page(
-          {:error, {:redirect, redirect()}},
-          String.t()
-        ) :: boolean()
-  def assert_redirect_to_main_page(
-        {:error, {:redirect, redirect}},
-        flash_title \\ "Only an administrator may access"
+  @spec assert_redirect_to_log_in_page(%Plug.Conn{}, String.t()) :: boolean()
+  def assert_redirect_to_log_in_page(%Plug.Conn{} = conn, path) do
+    {:error, {_, %{to: to, flash: flash}}} = live(conn, path)
+
+    assert(to == ~p"/log_in")
+    assert(flash["error"] == "You must log in to access this page.")
+  end
+
+  @doc """
+  Check that a logged-in user gets redirected to an appropriate page
+  with an expected flash title. For example, an appropriate page to redirect
+  a non-administrator to when they attempt to edit an order
+  at `"/orders/9/show/edit"` is `"/orders/9"`. For `"/orders/new"`
+  and for `"orders/9/edit"` such a page would be `"/orders"`
+  """
+  @spec assert_redirect_to_index_or_show(%Plug.Conn{}, String.t()) :: boolean()
+  def assert_redirect_to_index_or_show(
+        %Plug.Conn{} = conn,
+        path,
+        flash_title \\ "Only an administrator may access this page."
       ) do
-    assert(redirect.to == ~p"/")
-    assert(redirect.flash["error"] =~ flash_title)
+    {:error, {_, %{to: to, flash: flash}}} = live(conn, path)
+
+    path_part =
+      ~r/(?<=^\/)[a-zA-Z]*(?:\/\d+(?=(?:\/show)|(?:\/?$)))?/
+      |> Regex.run(path)
+      |> to_string()
+      |> String.split("/")
+
+    assert(to == ~p"/#{path_part}")
+    assert(flash["error"] =~ flash_title)
   end
 
   @doc """
@@ -813,7 +841,7 @@ defmodule CloudDbUiWeb.ConnCase do
   and `:unit_price` (if the input field is present) changes.
   """
   @spec assert_suborder_subtotal_change(%View{}, %SubOrder{}) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   def assert_suborder_subtotal_change(%View{} = live, suborder) do
     assert_suborder_subtotal_change(
       live,
@@ -963,7 +991,7 @@ defmodule CloudDbUiWeb.ConnCase do
   when a valid number in inputted.
   """
   @spec assert_suborder_unit_price_label_change(%View{}, %SubOrder{}) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   def assert_suborder_unit_price_label_change(%View{} = live_view, suborder) do
     price =
       live_view
@@ -985,6 +1013,8 @@ defmodule CloudDbUiWeb.ConnCase do
     change_suborder_form(live_view, %{unit_price: suborder.unit_price})
   end
 
+  # TODO: do not warn that a path should not begin with a forward slash, just delete the slash silently
+
   @doc """
   Check that incorrect filter `"field"`, `"op"`, and `"value"` URL
   params get handled when filtering. A URL `path` should not begin
@@ -1002,6 +1032,8 @@ defmodule CloudDbUiWeb.ConnCase do
     assert_filter_op_param_handling(conn, path, index, field, op)
     assert_filter_value_param_handling(conn, path, index, field, op)
   end
+
+  # TODO: do not warn that a path should not begin with a forward slash, just delete the slash silently
 
   @doc """
   Check that incorrect sort `"order_directions"`, `"order"`,
@@ -1038,6 +1070,8 @@ defmodule CloudDbUiWeb.ConnCase do
     |> Enum.all?(&has_pagination_counter?(conn, path, &1))
     |> assert()
   end
+
+  # TODO: do not warn that a path should not begin with a forward slash, just delete the slash silently
 
   @doc """
   Check that incorrect `"page"` URL params get handled when sorting.
@@ -1117,7 +1151,8 @@ defmodule CloudDbUiWeb.ConnCase do
   @doc """
   `change()` for `"#suborder_form"`. Should returns a rendered form.
   """
-  @spec change_suborder_form(%View{}, %{atom() => any()}) :: html_or_redirect()
+  @spec change_suborder_form(%View{}, %{atom() => any()}) ::
+          String.t() | redirect_error()
   def change_suborder_form(%View{} = live_view, suborder_data) do
     change(live_view, "#suborder-form", %{sub_order: suborder_data})
   end
@@ -1265,7 +1300,7 @@ defmodule CloudDbUiWeb.ConnCase do
 
   # When the `:unit_price` input field is present.
   @spec assert_suborder_subtotal_change(%View{}, %SubOrder{}, boolean()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   defp assert_suborder_subtotal_change(%View{} = live_view, suborder, true) do
     quantity_new = changed_quantity(suborder)
 
@@ -1341,6 +1376,8 @@ defmodule CloudDbUiWeb.ConnCase do
     assert(has_form_error?(live, "#filter-form", "format"))
   end
 
+  # TODO: do not warn that a path should not begin with a forward slash, just delete the slash silently
+
   # Check that incorrect filter `"field"` URL params get handled
   # when filtering. A URL `path` should not begin with a forward slash.
   @spec assert_filter_field_param_handling(
@@ -1356,6 +1393,8 @@ defmodule CloudDbUiWeb.ConnCase do
     |> Enum.all?(&has_pagination_counter?(conn, path, &1))
     |> assert()
   end
+
+  # TODO: do not warn that a path should not begin with a forward slash, just delete the slash silently
 
   # Check that incorrect filter `"op"`erator URL params get handled
   # when filtering. A URL `path` should not begin with a forward slash.
@@ -1379,6 +1418,8 @@ defmodule CloudDbUiWeb.ConnCase do
     |> assert()
   end
 
+  # TODO: do not warn that a path should not begin with a forward slash, just delete the slash silently
+
   # Check that incorrect filter `"value"` URL params get handled
   # when filtering. The field is either `type="datetime-local"`
   # or `<select>`. A URL `path` should not begin with a forward slash.
@@ -1394,6 +1435,8 @@ defmodule CloudDbUiWeb.ConnCase do
     |> has_pagination_counter?(path, filter_params(index, field, op, "_¢_"))
     |> assert()
   end
+
+  # TODO: do not warn that a path should not begin with a forward slash, just delete the slash silently
 
   # Render a new `%View{}` from `conn` and `path`, then check the presence
   # of `#pagination-counter`. If it has been rendered, this means the page
@@ -1433,7 +1476,7 @@ defmodule CloudDbUiWeb.ConnCase do
           non_neg_integer(),
           non_neg_integer(),
           String.t()
-        ) :: html_or_redirect()
+        ) :: String.t() | redirect_error()
   defp filter_min_max_fields(%View{} = live, ind_from, ind_to, "decimal") do
     filter(live, ind_from, "   0.00  ")
     filter(live, ind_to, "  0.01   ")
@@ -1551,7 +1594,10 @@ defmodule CloudDbUiWeb.ConnCase do
 
   @spec content_type(String.t()) :: String.t()
   defp content_type(file_name) do
-    case file_extension(file_name) do
+    file_name
+    |> trim_downcase()
+    |> file_extension()
+    |> case do
       "jpg" -> "image/jpeg"
       "jpeg" -> "image/jpeg"
       "png" -> "image/png"
@@ -1563,9 +1609,6 @@ defmodule CloudDbUiWeb.ConnCase do
 
   @spec file_extension(String.t()) :: String.t() | nil
   defp file_extension(file_name) do
-    case Regex.run(~r/(?<=\.)\S+$/, trim_downcase(file_name)) do
-      [extension] -> extension
-      nil -> nil
-    end
+    "#{Regex.run(~r/(?<=\.)\S+$/, file_name)}"
   end
 end

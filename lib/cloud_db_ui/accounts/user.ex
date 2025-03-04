@@ -1,13 +1,14 @@
 defmodule CloudDbUi.Accounts.User do
   use Ecto.Schema
 
-  alias CloudDbUi.Orders.Order
-  alias Ecto.Changeset
-
   import CloudDbUi.Accounts.User.FlopSchemaFields
   import CloudDbUi.Changeset
   import CloudDbUiWeb.Utilities
   import Ecto.Changeset
+
+  alias CloudDbUi.Accounts.User
+  alias CloudDbUi.Orders.Order
+  alias Ecto.Changeset
 
   @type attrs :: CloudDbUi.Type.attrs()
 
@@ -60,13 +61,13 @@ defmodule CloudDbUi.Accounts.User do
       validations on a LiveView form), this option can be set to `false`.
       Defaults to `true`.
 
-    * `:validate_email` - Validates the uniqueness of the email, in case
-      you don't want to validate the uniqueness of the email (like when
+    * `:validate_unique_email` - Validates the uniqueness of the email.
+      If you don't want to validate the uniqueness of the email (like when
       using this changeset for validations on a LiveView form before
       submitting the form), this option can be set to `false`.
       Defaults to `true`.
   """
-  @spec registration_validation_changeset(%__MODULE__{}, attrs(), keyword()) ::
+  @spec registration_validation_changeset(%User{}, attrs(), keyword()) ::
           %Changeset{}
   def registration_validation_changeset(user, attrs, opts \\ []) do
     user
@@ -81,9 +82,9 @@ defmodule CloudDbUi.Accounts.User do
     |> put_changes_from_attrs(attrs, [:email])
   end
 
-  @spec registration_saving_changeset(%__MODULE__{}, attrs(), keyword()) ::
+  @spec registration_saving_changeset(%User{}, attrs(), keyword()) ::
           %Changeset{}
-  def registration_saving_changeset(%__MODULE__{} = user, attrs, opts \\ []) do
+  def registration_saving_changeset(%User{} = user, attrs, opts \\ []) do
     user
     |> registration_validation_changeset(attrs, opts)
     |> case do
@@ -101,7 +102,7 @@ defmodule CloudDbUi.Accounts.User do
   """
   @spec creation_changeset(attrs()) :: %Changeset{}
   def creation_changeset(attrs) do
-    %__MODULE__{}
+    %User{}
     |> saving_changeset(attrs)
     |> cast(attrs, [:admin, :active])
   end
@@ -111,13 +112,13 @@ defmodule CloudDbUi.Accounts.User do
   as an admin.
   """
   @spec validation_changeset(
-          %__MODULE__{},
+          %User{},
           attrs(),
           boolean(),
           [String.t()] | nil
         ) :: %Changeset{}
   def validation_changeset(
-        %__MODULE__{} = user,
+        %User{} = user,
         attrs,
         validate_unique? \\ true,
         target \\ nil
@@ -137,7 +138,7 @@ defmodule CloudDbUi.Accounts.User do
     |> validate_required([:active])
     |> validate_required_with_default([:balance])
     # Contains `validate_required([:email])`.
-    |> validate_email([validate_email: false])
+    |> validate_email([validate_unique_email: false])
     |> maybe_validate_confirmation(:email, [required: true, target: target])
     |> maybe_unsafe_validate_unique_constraint(:email, validate_unique?)
     # Contains `validate_required([:password])`.
@@ -159,8 +160,8 @@ defmodule CloudDbUi.Accounts.User do
   @doc """
   `validation_changeset()` with extra steps.
   """
-  @spec saving_changeset(%__MODULE__{}, attrs()) :: %Changeset{}
-  def saving_changeset(%__MODULE__{} = user, attrs) do
+  @spec saving_changeset(%User{}, attrs()) :: %Changeset{}
+  def saving_changeset(%User{} = user, attrs) do
     user
     |> validation_changeset(attrs, true)
     |> case do
@@ -181,9 +182,8 @@ defmodule CloudDbUi.Accounts.User do
 
   It requires the email to change otherwise an error is added.
   """
-  @spec email_changeset(%__MODULE__{}, attrs(), keyword(boolean())) ::
-          %Changeset{}
-  def email_changeset(%__MODULE__{} = user, attrs, opts \\ []) do
+  @spec email_changeset(%User{}, attrs(), keyword(boolean())) :: %Changeset{}
+  def email_changeset(%User{} = user, attrs, opts \\ []) do
     user
     |> cast_transformed(attrs, [:email], &trim_downcase/1)
     |> validate_email(opts)
@@ -204,9 +204,9 @@ defmodule CloudDbUi.Accounts.User do
       validations on a LiveView form), this option can be set to `false`.
       Defaults to `true`.
   """
-  @spec password_changeset(%__MODULE__{}, attrs(), keyword(boolean())) ::
+  @spec password_changeset(%User{}, attrs(), keyword(boolean())) ::
           %Changeset{}
-  def password_changeset(%__MODULE__{} = user, attrs, opts \\ []) do
+  def password_changeset(%User{} = user, attrs, opts \\ []) do
     user
     |> cast(attrs, [])
     # Skipping `cast()`, because `cast()` does not add passwords
@@ -219,8 +219,8 @@ defmodule CloudDbUi.Accounts.User do
   @doc """
   A user changeset for topping up `:balance`.
   """
-  @spec top_up_changeset(%__MODULE__{}, attrs()) :: %Changeset{}
-  def top_up_changeset(%__MODULE__{} = user, attrs) do
+  @spec top_up_changeset(%User{}, attrs()) :: %Changeset{}
+  def top_up_changeset(%User{} = user, attrs) do
     user
     # Forcing changes, because `:top_up_amount` is always a delta.
     |> cast_transformed(
@@ -250,8 +250,8 @@ defmodule CloudDbUi.Accounts.User do
   @doc """
   A user changeset for finalising orders (paying for them).
   """
-  @spec payment_changeset(%__MODULE__{}, attrs()) :: %Changeset{}
-  def payment_changeset(%__MODULE__{} = user, attrs) do
+  @spec payment_changeset(%User{}, attrs()) :: %Changeset{}
+  def payment_changeset(%User{} = user, attrs) do
     user
     |> cast(attrs, [:balance])
     |> validate_required([:balance])
@@ -262,7 +262,7 @@ defmodule CloudDbUi.Accounts.User do
   @doc """
   Confirm the account by setting `confirmed_at`.
   """
-  @spec confirmation_changeset(%__MODULE__{} | %Changeset{}) :: %Changeset{}
+  @spec confirmation_changeset(%User{} | %Changeset{}) :: %Changeset{}
   def confirmation_changeset(user) do
     change(user, [confirmed_at: DateTime.utc_now(:second)])
   end
@@ -274,8 +274,8 @@ defmodule CloudDbUi.Accounts.User do
     - the `user` has positive `:balance`.
     - the `user` has any paid orders.
   """
-  @spec deletion_changeset(%__MODULE__{}) :: %Changeset{}
-  def deletion_changeset(%{admin: false, paid_orders: 0} = user) do
+  @spec deletion_changeset(%User{}) :: %Changeset{}
+  def deletion_changeset(%User{admin: false, paid_orders: 0} = user) do
     if Decimal.compare(user.balance, "0") == :eq do
       change(user)
     else
@@ -289,7 +289,7 @@ defmodule CloudDbUi.Accounts.User do
     end
   end
 
-  def deletion_changeset(%__MODULE__{admin: true} = user) do
+  def deletion_changeset(%User{admin: true} = user) do
     user
     |> change()
     |> add_error(
@@ -300,7 +300,7 @@ defmodule CloudDbUi.Accounts.User do
   end
 
   # The value of `:paid_orders` is `nil` or greater than zero.
-  def deletion_changeset(%__MODULE__{} = user) do
+  def deletion_changeset(%User{} = user) do
     user
     |> change()
     |> add_error(
@@ -311,13 +311,30 @@ defmodule CloudDbUi.Accounts.User do
   end
 
   @doc """
+  A user changeset for logging in.
+  """
+  @spec log_in_changeset(attrs()) :: %Changeset{}
+  def log_in_changeset(%{} = attrs) do
+    %User{}
+    |> cast(attrs, [:email, :password])
+    # Skipping `cast()`, because `cast()` does not add passwords
+    # consisting only of spaces to `:changes`.
+    |> maybe_put_password(attrs)
+    |> validate_required([:password])
+    |> validate_length(:password, [min: 8, max: 72])
+    |> validate_email([validate_unique_email: false])
+    # Reset `:email` to its initial untrimmed value.
+    |> put_changes_from_attrs(attrs, [:email])
+  end
+
+  @doc """
   Verify the password.
 
   If there is no user, or the user doesn't have a password, call
   `Pbkdf2.no_user_verify/0` to avoid timing attacks.
   """
-  @spec valid_password?(%__MODULE__{}, String.t()) :: boolean()
-  def valid_password?(%__MODULE__{hashed_password: hashed}, password)
+  @spec valid_password?(%User{}, String.t()) :: boolean()
+  def valid_password?(%User{hashed_password: hashed}, password)
       when is_binary(hashed) and byte_size(password) > 0 do
     Pbkdf2.verify_pass(password, hashed)
   end
@@ -356,7 +373,7 @@ defmodule CloudDbUi.Accounts.User do
   Checks whether `id_or_e_mail` matches `user.id` or `user.email`.
   Expects a trimmed and down-cased value of `id_or_e_mail`.
   """
-  @spec match_id_or_email?(String.t(), %__MODULE__{} | nil) :: boolean()
+  @spec match_id_or_email?(String.t(), %User{} | nil) :: boolean()
   def match_id_or_email?(id_or_e_mail, user) do
     user && (id_or_e_mail == "#{user.id}" or id_or_e_mail == user.email)
   end
@@ -365,26 +382,26 @@ defmodule CloudDbUi.Accounts.User do
   Determine if a `%User{}` is an administrator.
   `nil` users are not administrators.
   """
-  @spec admin?(%__MODULE__{} | nil) :: boolean()
+  @spec admin?(%User{} | nil) :: boolean()
   def admin?(nil), do: false
 
-  def admin?(%__MODULE__{admin: admin} = _user), do: admin
+  def admin?(%User{admin: admin} = _user), do: admin
 
   @doc """
   Determine whether an user is deletable (not an administrator,
   owns no `:paid_orders` and has zero `:balance`).
   """
-  @spec deletable?(%__MODULE__{}) :: boolean()
-  def deletable?(%__MODULE__{admin: true} = _user), do: false
+  @spec deletable?(%User{}) :: boolean()
+  def deletable?(%User{admin: true} = _user), do: false
 
   # Non-admin.
-  def deletable?(%__MODULE__{paid_orders: 0} = user) do
+  def deletable?(%User{paid_orders: 0} = user) do
     Decimal.compare(user.balance, 0) == :eq
   end
 
   # `:paid_orders` is either `nil` or greater than zero,
   # or `:balance` is greater than zero.
-  def deletable?(%__MODULE__{} = _user), do: false
+  def deletable?(%User{} = _user), do: false
 
   @doc """
   A getter for accessing `@balance_limit` outside of the module.
@@ -401,8 +418,8 @@ defmodule CloudDbUi.Accounts.User do
   @doc """
   Fill the `:paid_orders` virtual field.
   """
-  @spec fill_paid_orders(%__MODULE__{}) :: %__MODULE__{}
-  def fill_paid_orders(%__MODULE__{} = user) when is_list(user.orders) do
+  @spec fill_paid_orders(%User{}) :: %User{}
+  def fill_paid_orders(%User{} = user) when is_list(user.orders) do
     Map.replace(
       user,
       :paid_orders,
@@ -411,7 +428,7 @@ defmodule CloudDbUi.Accounts.User do
   end
 
   # A valid change`set`, calculate a changed `:balance`.
-  @spec maybe_put_balance(%Changeset{}, %__MODULE__{}) :: %Changeset{}
+  @spec maybe_put_balance(%Changeset{}, %User{}) :: %Changeset{}
   defp maybe_put_balance(%{changes: %{top_up_amount: amount}} = set, user)
        when set.valid? do
     put_change(set, :balance, Decimal.add(user.balance, amount))
@@ -422,7 +439,7 @@ defmodule CloudDbUi.Accounts.User do
   defp maybe_put_balance(changeset, _user), do: changeset
 
   # Will call `unsafe_validate_unique()` and `unique_constraint()`,
-  # unless `opts` contain `validate_email: false`.
+  # unless `opts` contain `validate_unique_email: false`.
   @spec validate_email(%Changeset{}, keyword(boolean())) :: %Changeset{}
   defp validate_email(changeset, opts) do
     changeset
@@ -483,10 +500,10 @@ defmodule CloudDbUi.Accounts.User do
   end
 
   # Will call `unsafe_validate_unique()` and `unique_constraint()`,
-  # unless `opts` contain `validate_email: false`.
+  # unless `opts` contain `validate_unique_email: false`.
   @spec maybe_validate_unique_email(%Changeset{}, keyword()) :: %Changeset{}
   defp maybe_validate_unique_email(changeset, opts) do
-    if Keyword.get(opts, :validate_email, true) do
+    if Keyword.get(opts, :validate_unique_email, true) do
       changeset
       |> unsafe_validate_unique(:email, CloudDbUi.Repo)
       |> unique_constraint(:email)
@@ -499,11 +516,11 @@ defmodule CloudDbUi.Accounts.User do
   # in change`set.changes` and the user is an admin (this means
   # there is `admin: true` or `"admin" => "true"` in `attrs`,
   # or `user.admin` is `true`).
-  @spec maybe_validate_zero_admin_balance(%Changeset{}, %__MODULE__{}) ::
+  @spec maybe_validate_zero_admin_balance(%Changeset{}, %User{}) ::
           %Changeset{}
   defp maybe_validate_zero_admin_balance(
          %{changes: %{balance: _}} = set,
-         %__MODULE__{} = user
+         %User{} = user
        ) do
     case Map.get(set.params, "admin") || user.admin do
       truthy when truthy in [true, "true"] -> validate_zero_balance(set)
@@ -512,7 +529,7 @@ defmodule CloudDbUi.Accounts.User do
   end
 
   # No change of `:balance` in change`set.changes`.
-  defp maybe_validate_zero_admin_balance(set, %__MODULE__{}), do: set
+  defp maybe_validate_zero_admin_balance(set, %User{}), do: set
 
   @spec validate_zero_balance(%Changeset{}) :: %Changeset{}
   defp validate_zero_balance(%Changeset{changes: %{balance: balance}} = set) do
@@ -576,12 +593,9 @@ defmodule CloudDbUi.Accounts.User do
 
   # `validate_password()` if there is a change of `:password`,
   # or if the `user` is a newly-created one.
-  @spec maybe_validate_password(
-          %Changeset{},
-          %__MODULE__{},
-          keyword(boolean())
-        ) :: %Changeset{}
-  defp maybe_validate_password(changeset, %__MODULE__{} = user, opts) do
+  @spec maybe_validate_password(%Changeset{}, %User{}, keyword(boolean())) ::
+          %Changeset{}
+  defp maybe_validate_password(changeset, %User{} = user, opts) do
     case user.id == nil or Map.has_key?(changeset.changes, :password) do
       true -> validate_password(changeset, opts)
       false -> changeset

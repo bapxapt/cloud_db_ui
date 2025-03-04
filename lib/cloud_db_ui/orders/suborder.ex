@@ -1,14 +1,14 @@
 defmodule CloudDbUi.Orders.SubOrder do
   use Ecto.Schema
 
-  alias CloudDbUi.Accounts.User
-  alias CloudDbUi.Products.Product
-  alias CloudDbUi.Orders.Order
-  alias Ecto.Changeset
-
   import Ecto.Changeset
   import CloudDbUi.Changeset
   import CloudDbUiWeb.Utilities
+
+  alias CloudDbUi.Accounts.User
+  alias CloudDbUi.Products.Product
+  alias CloudDbUi.Orders.{Order, SubOrder}
+  alias Ecto.Changeset
 
   @type attrs() :: CloudDbUi.Type.attrs()
 
@@ -32,12 +32,12 @@ defmodule CloudDbUi.Orders.SubOrder do
   as an admin.
   """
   @spec validation_changeset(
-          %__MODULE__{},
+          %SubOrder{},
           attrs(),
           %Order{} | nil,
           %Product{} | nil
         ) :: %Changeset{}
-  def validation_changeset(%__MODULE__{} = suborder, attrs, order, product) do
+  def validation_changeset(%SubOrder{} = suborder, attrs, order, product) do
     suborder
     |> cast(attrs, [:order_id, :product_id, :quantity])
     |> cast_transformed(attrs, [:unit_price], &trim/1)
@@ -59,12 +59,12 @@ defmodule CloudDbUi.Orders.SubOrder do
   as an admin. `validation_changeset()` with extra steps.
   """
   @spec saving_changeset(
-          %__MODULE__{},
+          %SubOrder{},
           attrs(),
           %Order{} | nil,
           %Product{} | nil
         ) :: %Changeset{}
-  def saving_changeset(%__MODULE__{} = suborder, attrs, order, product) do
+  def saving_changeset(%SubOrder{} = suborder, attrs, order, product) do
     suborder
     |> validation_changeset(attrs, order, product)
     |> case do
@@ -81,8 +81,8 @@ defmodule CloudDbUi.Orders.SubOrder do
   @doc """
   A changeset for editing as a user.
   """
-  @spec quantity_changeset(%__MODULE__{}, attrs()) :: %Changeset{}
-  def quantity_changeset(%__MODULE__{} = suborder, attrs) do
+  @spec quantity_changeset(%SubOrder{}, attrs()) :: %Changeset{}
+  def quantity_changeset(%SubOrder{} = suborder, attrs) do
     suborder
     |> cast(attrs, [:quantity])
     |> validate_required([:quantity])
@@ -94,8 +94,8 @@ defmodule CloudDbUi.Orders.SubOrder do
   @doc """
   A changeset for deletion. Invalid if the `order` has been paid for.
   """
-  @spec deletion_changeset(%__MODULE__{}, %Order{}) :: %Changeset{}
-  def deletion_changeset(%__MODULE__{} = suborder, order) do
+  @spec deletion_changeset(%SubOrder{}, %Order{}) :: %Changeset{}
+  def deletion_changeset(%SubOrder{} = suborder, order) do
     suborder
     |> change()
     |> force_change(:order_id, order.id)
@@ -105,12 +105,12 @@ defmodule CloudDbUi.Orders.SubOrder do
   @doc """
   Fill the `:subtotal` virtual field if it is `nil`.
   """
-  @spec maybe_fill_subtotal(%__MODULE__{}) :: %__MODULE__{}
-  def maybe_fill_subtotal(%__MODULE__{subtotal: nil} = suborder) do
+  @spec maybe_fill_subtotal(%SubOrder{}) :: %SubOrder{}
+  def maybe_fill_subtotal(%SubOrder{subtotal: nil} = suborder) do
     Map.replace(suborder, :subtotal, subtotal(suborder))
   end
 
-  def maybe_fill_subtotal(%__MODULE__{} = suborder), do: suborder
+  def maybe_fill_subtotal(%SubOrder{} = suborder), do: suborder
 
   @doc """
   A getter for accessing `@quantity_limit` outside of the module.
@@ -119,7 +119,7 @@ defmodule CloudDbUi.Orders.SubOrder do
 
   # If the current `:unit_price` of a `%Product{}` exceeds the price
   # stored as a snap-shot in the `%SubOrder`, forbid increasing quantity.
-  @spec maybe_validate_quantity_increase(%Ecto.Changeset{}, %__MODULE__{}) ::
+  @spec maybe_validate_quantity_increase(%Ecto.Changeset{}, %SubOrder{}) ::
           %Ecto.Changeset{}
   defp maybe_validate_quantity_increase(
          %{changes: %{quantity: quantity_new}} = set,
@@ -137,7 +137,7 @@ defmodule CloudDbUi.Orders.SubOrder do
 
   # Determine whether the snapshot of `:unit_price` in a sub-order is below
   # the current `:unit_price` of the product.
-  @spec unit_price_increased?(%__MODULE__{}) :: boolean()
+  @spec unit_price_increased?(%SubOrder{}) :: boolean()
   defp unit_price_increased?(%{product: %Product{} = product} = suborder) do
     suborder.unit_price < product.unit_price
   end
@@ -152,7 +152,7 @@ defmodule CloudDbUi.Orders.SubOrder do
 
   # If there is a changeset error for any field in `fields`,
   # do not attempt to put a change of `:subtotal`.
-  @spec maybe_put_subtotal(%Ecto.Changeset{}, %__MODULE__{}, [atom()]) ::
+  @spec maybe_put_subtotal(%Ecto.Changeset{}, %SubOrder{}, [atom()]) ::
           %Ecto.Changeset{}
   defp maybe_put_subtotal(%Ecto.Changeset{} = set, suborder, fields) do
     case get_errors(set, fields) == %{} do
@@ -161,7 +161,7 @@ defmodule CloudDbUi.Orders.SubOrder do
     end
   end
 
-  @spec maybe_put_subtotal(%Ecto.Changeset{}, %__MODULE__{}) ::
+  @spec maybe_put_subtotal(%Ecto.Changeset{}, %SubOrder{}) ::
           %Ecto.Changeset{}
   defp maybe_put_subtotal(%{changes: c} = changeset, _suborder)
        when not is_map_key(c, :unit_price) and not is_map_key(c, :quantity) do
@@ -183,8 +183,8 @@ defmodule CloudDbUi.Orders.SubOrder do
 
   # Return the value of `:subtotal` rounded to two digits after
   # the floating point.
-  @spec subtotal(%__MODULE__{}) :: %Decimal{}
-  defp subtotal(%__MODULE__{} = suborder) do
+  @spec subtotal(%SubOrder{}) :: %Decimal{}
+  defp subtotal(%SubOrder{} = suborder) do
     subtotal(suborder.unit_price, suborder.quantity)
   end
 

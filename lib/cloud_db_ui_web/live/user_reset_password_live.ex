@@ -10,6 +10,8 @@ defmodule CloudDbUiWeb.UserResetPasswordLive do
 
   @type params() :: CloudDbUi.Type.params()
 
+  # TODO: phx-hook="CharacterCounter" with data-value="" for the character counters to ignore phx-debounce
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -31,13 +33,14 @@ defmodule CloudDbUiWeb.UserResetPasswordLive do
           field={@form[:password]}
           type="password"
           label={label_text("New password", @form[:password].value, 72)}
+          phx-debounce="360"
           required
         />
         <.input
           field={@form[:password_confirmation]}
           type="password"
-          phx-debounce="300"
           label={label_text_password_confirmation(@form)}
+          phx-debounce="360"
           required
         />
 
@@ -49,8 +52,8 @@ defmodule CloudDbUiWeb.UserResetPasswordLive do
       </.simple_form>
 
       <p class="text-center text-sm mt-4">
-        <.link href={~p"/users/register"}>Register</.link>
-        | <.link href={~p"/users/log_in"}>Log in</.link>
+        <.link href={~p"/register"}>Register</.link>
+        | <.link href={~p"/log_in"}>Log in</.link>
       </p>
     </div>
     """
@@ -103,7 +106,7 @@ defmodule CloudDbUiWeb.UserResetPasswordLive do
       {:ok, _user} ->
         socket
         |> put_flash(:info, "Password reset successfully.")
-        |> redirect(to: ~p"/users/log_in")
+        |> redirect(to: ~p"/log_in")
 
       {:error, changeset} ->
         assign_form(socket, Map.put(changeset, :action, :insert))

@@ -6,12 +6,13 @@ defmodule CloudDbUiWeb.ProductLive.Index do
     schema_field_module: CloudDbUi.Products.Product.FlopSchemaFields,
     stream_name: :products
 
+  import CloudDbUiWeb.{HTML, Utilities, JavaScript}
+
   alias CloudDbUi.Orders.SubOrder
+  alias CloudDbUi.Products.Product
   alias CloudDbUiWeb.ProductLive.{Actions, FormComponent}
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
-
-  import CloudDbUiWeb.{HTML, Utilities, JavaScript}
 
   @type params() :: CloudDbUi.Type.params()
 
@@ -83,5 +84,10 @@ defmodule CloudDbUiWeb.ProductLive.Index do
     socket
     |> assign(:meta, %Flop.Meta{})
     |> stream(:products, [])
+  end
+
+  @spec deletable?(%User{} | nil, %Product{}) :: boolean()
+  defp deletable?(user, %Product{} = product) do
+    User.admin?(user) and product.paid_orders == 0
   end
 end

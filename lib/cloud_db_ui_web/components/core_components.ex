@@ -15,14 +15,15 @@ defmodule CloudDbUiWeb.CoreComponents do
   Icons are provided by [heroicons](https://heroicons.com).
   See `icon/1` for usage.
   """
-
   use Phoenix.Component
+  use Gettext, backend: CloudDbUiWeb.Gettext
 
+  import CloudDbUiWeb.Utilities
+  import PhoenixHTMLHelpers.Tag
+
+  alias Phoenix.Component
   alias Phoenix.LiveView.{JS, Rendered, LiveStream}
   alias Phoenix.HTML.{Form, FormField}
-
-  import CloudDbUiWeb.{Gettext, Utilities}
-  import Phoenix.HTML.Tag
 
   @type transition() :: {String.t(), String.t(), String.t()}
   @type error() :: CloudDbUi.Type.error()
@@ -98,7 +99,7 @@ defmodule CloudDbUiWeb.CoreComponents do
                 </button>
               </div>
               <div id={"#{@id}-content"}>
-                <%= render_slot(@inner_block) %>
+                {render_slot(@inner_block)}
               </div>
             </.focus_wrap>
           </div>
@@ -149,9 +150,9 @@ defmodule CloudDbUiWeb.CoreComponents do
           name={flash_title_icon_name(@kind)}
           class="h-4 w-4"
         />
-        <%= @title %>
+        {@title}
       </p>
-      <p class="mt-2 text-sm leading-5"><%= msg %></p>
+      <p class="mt-2 text-sm leading-5">{msg}</p>
       <button
         type="button"
         class="group absolute top-1 right-1 p-2" aria-label={gettext("close")}
@@ -174,34 +175,33 @@ defmodule CloudDbUiWeb.CoreComponents do
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
   attr :id, :string, default: "flash-group", doc: "the optional ID of a flash container"
-
   @spec flash_group(%{atom() => any()}) :: %Rendered{}
   def flash_group(assigns) do
     ~H"""
     <div id={@id}>
-      <.flash kind={:info} title="Success!" flash={@flash} />
-      <.flash kind={:error} title="Error!" flash={@flash} />
+      <.flash kind={:info} title={gettext("Success!")} flash={@flash} />
+      <.flash kind={:error} title={gettext("Error!")} flash={@flash} />
       <.flash
         id="client-error"
         kind={:error}
-        title="We can't find the internet"
+        title={gettext("We can't find the internet")}
         phx-disconnected={show(".phx-client-error #client-error")}
         phx-connected={hide("#client-error")}
         hidden
       >
-        Attempting to reconnect
+        {gettext("Attempting to reconnect")}
         <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
       </.flash>
 
       <.flash
         id="server-error"
         kind={:error}
-        title="Something went wrong!"
+        title={gettext("Something went wrong!")}
         phx-disconnected={show(".phx-server-error #server-error")}
         phx-connected={hide("#server-error")}
         hidden
       >
-        Hang in there while we get back on track
+        {gettext("Hang in there while we get back on track")}
         <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
       </.flash>
     </div>
@@ -221,8 +221,8 @@ defmodule CloudDbUiWeb.CoreComponents do
         </:actions>
       </.simple_form>
   """
-  attr :for, :any, required: true, doc: "the datastructure for the form"
-  attr :as, :any, default: nil, doc: "the server side parameter to collect all input under"
+  attr :for, :any, required: true, doc: "the data structure for the form"
+  attr :as, :any, default: nil, doc: "the server-side parameter to collect all input under"
   attr :margin_classes, :string, default: "mt-10 space-y-8"
   attr :bg_class, :string, default: "bg-white"
 
@@ -238,12 +238,12 @@ defmodule CloudDbUiWeb.CoreComponents do
     ~H"""
     <.form :let={f} for={@for} as={@as} {@rest}>
       <%= content_tag(:div, [class: class([@margin_classes, @bg_class])]) do %>
-        <%= render_slot(@inner_block, f) %>
+        {render_slot(@inner_block, f)}
         <div
           :for={action <- @actions}
           class="mt-2 flex items-center justify-between gap-6"
         >
-          <%= render_slot(action, f) %>
+          {render_slot(action, f)}
         </div>
       <% end %>
     </.form>
@@ -268,7 +268,7 @@ defmodule CloudDbUiWeb.CoreComponents do
   def button(assigns) do
     ~H"""
     <button type={@type} class={button_class() ++ [@class]} {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -277,7 +277,7 @@ defmodule CloudDbUiWeb.CoreComponents do
   Renders an input with label and error messages.
 
   A `%Phoenix.HTML.FormField{}` may be passed as argument,
-  which is used to retrieve the input name, id, and values.
+  which is used to retrieve the input name, ID, and values.
   Otherwise all attributes may be passed explicitly.
 
   ## Types
@@ -291,7 +291,8 @@ defmodule CloudDbUiWeb.CoreComponents do
     * For live file uploads, see `Phoenix.Component.live_file_input/1`
 
   See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input
-  for more information.
+  for more information. Unsupported types, such as hidden and radio,
+  are best written directly in your templates.
 
   ## Examples
 
@@ -306,16 +307,16 @@ defmodule CloudDbUiWeb.CoreComponents do
 
   attr :type, :string,
     default: "text",
-    values: ~w(checkbox color date datetime-local email file hidden month number password
-               range radio search select tel text textarea time url week)
+    values: ~w(checkbox color date datetime-local email file month number password
+               range search select tel text textarea time url week hidden)
 
-  attr :field, FormField,
+  attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
 
   attr :errors, :list, default: []
-  attr :checked, :boolean, doc: "the checked flag for check box inputs"
+  attr :checked, :boolean, doc: "the checked flag for checkbox inputs"
   attr :prompt, :string, default: nil, doc: "the prompt for select inputs"
-  attr :options, :list, doc: "the options to pass to `Phoenix.HTML.Form.options_for_select/2`"
+  attr :options, :list, doc: "the options to pass to Phoenix.HTML.Form.options_for_select/2"
   attr :multiple, :boolean, default: false, doc: "the multiple flag for select inputs"
   attr :root_div_style, :string, default: nil, doc: "inline styling for the root `<div>`"
   attr :display_errors, :boolean, default: true
@@ -332,13 +333,13 @@ defmodule CloudDbUiWeb.CoreComponents do
     include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
                 multiple pattern placeholder readonly required rows size step)
 
-  slot :inner_block
-
   @spec input(%{atom() => any()}) :: %Rendered{}
   def input(%{field: %FormField{} = field} = assigns) do
+    errors = if Component.used_input?(field), do: field.errors, else: []
+
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
-    |> assign(:errors, Enum.map(field.errors, &translate_error(&1)))
+    |> assign(:errors, Enum.map(errors, &translate_error(&1)))
     |> assign_new(
       :name,
       fn -> if assigns.multiple, do: field.name <> "[]", else: field.name end
@@ -361,13 +362,18 @@ defmodule CloudDbUiWeb.CoreComponents do
         show_on_mount={@errors_on_mount}
         float_class="float-right"
       >
-        <%= msg %>
+        {msg}
       </.error>
       <label
         id={if @id, do: @id <> "-label"}
         class="flex items-center gap-4 text-sm leading-6 text-zinc-600"
       >
-        <input type="hidden" name={@name} value="false" />
+        <input
+          type="hidden"
+          name={@name}
+          value="false"
+          disabled={@rest[:disabled]}
+        />
         <input
           type="checkbox"
           id={@id}
@@ -377,14 +383,14 @@ defmodule CloudDbUiWeb.CoreComponents do
           class="rounded border-zinc-300 text-zinc-900 focus:ring-0"
           {@rest}
         />
-        <%= @label %>
+        {@label}
       </label>
       <.error
         :if={@display_errors and !@inline_error}
         :for={msg <- @errors}
         show_on_mount={@errors_on_mount}
       >
-        <%= msg %>
+        {msg}
       </.error>
     <% end %>
     """
@@ -399,9 +405,9 @@ defmodule CloudDbUiWeb.CoreComponents do
         show_on_mount={@errors_on_mount}
         float_class="float-right"
       >
-        <%= msg %>
+        {msg}
       </.error>
-      <.label id={if @id, do: @id <> "-label"} for={@id}><%= @label %></.label>
+      <.label id={if @id, do: @id <> "-label"} for={@id}>{@label}</.label>
       <select
         id={@id}
         name={@name}
@@ -413,15 +419,15 @@ defmodule CloudDbUiWeb.CoreComponents do
         multiple={@multiple}
         {@rest}
       >
-        <option :if={@prompt} value=""><%= @prompt %></option>
-        <%= Form.options_for_select(@options, @value) %>
+        <option :if={@prompt} value="">{@prompt}</option>
+        {Form.options_for_select(@options, @value)}
       </select>
       <.error
         :if={@display_errors and !@inline_error}
         :for={msg <- @errors}
         show_on_mount={@errors_on_mount}
       >
-        <%= msg %>
+        {msg}
       </.error>
     <% end %>
     """
@@ -436,9 +442,9 @@ defmodule CloudDbUiWeb.CoreComponents do
         show_on_mount={@errors_on_mount}
         float_class="float-right"
       >
-        <%= msg %>
+        {msg}
       </.error>
-      <.label id={if @id, do: @id <> "-label"} for={@id}><%= @label %></.label>
+      <.label id={if @id, do: @id <> "-label"} for={@id}>{@label}</.label>
       <textarea
         id={@id}
         name={@name}
@@ -449,13 +455,15 @@ defmodule CloudDbUiWeb.CoreComponents do
           text_input_border_class(@errors)
         ]}
         {@rest}
-      ><%= Form.normalize_value("textarea", @value) %></textarea>
+      >
+        {Form.normalize_value("textarea", @value)}
+      </textarea>
       <.error
         :if={@display_errors and !@inline_error}
         :for={msg <- @errors}
         show_on_mount={@errors_on_mount}
       >
-        <%= msg %>
+        {msg}
       </.error>
     <% end %>
     """
@@ -472,9 +480,9 @@ defmodule CloudDbUiWeb.CoreComponents do
         show_on_mount={@errors_on_mount}
         float_class="float-right"
       >
-        <%= msg %>
+        {msg}
       </.error>
-      <.label id={if @id, do: @id <> "-label"} for={@id}><%= @label %></.label>
+      <.label id={if @id, do: @id <> "-label"} for={@id}>{@label}</.label>
       <input
         type={@type}
         name={@name}
@@ -493,7 +501,7 @@ defmodule CloudDbUiWeb.CoreComponents do
         :for={msg <- @errors}
         show_on_mount={@errors_on_mount}
       >
-        <%= msg %>
+        {msg}
       </.error>
     <% end %>
     """
@@ -515,7 +523,7 @@ defmodule CloudDbUiWeb.CoreComponents do
       for={@for}
       class="block text-sm font-semibold leading-6 text-zinc-800"
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </label>
     """
   end
@@ -543,7 +551,7 @@ defmodule CloudDbUiWeb.CoreComponents do
         name="hero-exclamation-circle-mini"
         class="mt-0.5 h-5 w-5 flex-none"
       />
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </p>
     """
   end
@@ -551,7 +559,8 @@ defmodule CloudDbUiWeb.CoreComponents do
   @doc """
   Renders a header with title.
   """
-  # `:rest` instead of `:class` to avoid `class=""` with a `nil` `:class`.
+  # `:rest` instead of `attr :class, :string, default: nil`
+  # to avoid `class=""` with a `nil` `:class`.
   attr :rest, :global, doc: "arbitrary HTML attributes to add to a header"
 
   slot :inner_block, required: true
@@ -570,14 +579,14 @@ defmodule CloudDbUiWeb.CoreComponents do
     <header {@rest}>
       <div>
         <h1 class="text-lg font-semibold leading-8 text-zinc-800">
-          <%= render_slot(@inner_block) %>
+          {render_slot(@inner_block)}
         </h1>
         <p :if={@subtitle != []} class="mt-2 text-sm leading-6 text-zinc-600">
-          <%= render_slot(@subtitle) %>
+          {render_slot(@subtitle)}
         </p>
       </div>
       <div class="flex-none">
-        <%= render_slot_trimmed(@__changed__, @actions) %>
+        {render_slot_trimmed(@__changed__, @actions)}
       </div>
     </header>
     """
@@ -589,8 +598,8 @@ defmodule CloudDbUiWeb.CoreComponents do
   ## Examples
 
       <.table id="users" rows={@users}>
-        <:col :let={user} label="id"><%= user.id %></:col>
-        <:col :let={user} label="username"><%= user.username %></:col>
+        <:col :let={user} label="id">{user.id}</:col>
+        <:col :let={user} label="username">{user.username}</:col>
       </.table>
   """
   attr :id, :string, required: true
@@ -598,8 +607,10 @@ defmodule CloudDbUiWeb.CoreComponents do
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
 
+  # TODO: :col_extra_classes seems to be unused
+
   attr :col_extra_classes, :map, default: %{},
-    doc: "extra classes for each column (column indices begin with 0)"
+    doc: "extra classes for each column (zero-based column indices)"
 
   attr :row_item, :any, default: &Function.identity/1,
     doc: "the function for mapping each row before calling the :col and :action slots"
@@ -625,10 +636,10 @@ defmodule CloudDbUiWeb.CoreComponents do
         <thead class="text-sm text-left leading-6 text-zinc-500">
           <tr>
             <th :for={col <- @col} class="p-0 pb-4 pr-6 font-normal">
-              <%= col[:label] %>
+              {col[:label]}
             </th>
             <th :if={@action != []} class="relative p-0 pb-4">
-              <span class="sr-only"><%= gettext("Actions") %></span>
+              <span class="sr-only">{gettext("Actions")}</span>
             </th>
           </tr>
         </thead>
@@ -663,7 +674,7 @@ defmodule CloudDbUiWeb.CoreComponents do
                 <span
                   class={class(["relative", i == 0 && "font-semibold text-zinc-900"])}
                 >
-                  <%= render_slot(col, @row_item.(row)) %>
+                  {render_slot(col, @row_item.(row))}
                 </span>
               </div>
             </td>
@@ -687,7 +698,7 @@ defmodule CloudDbUiWeb.CoreComponents do
                     "hover:text-zinc-700"
                   ]}
                 >
-                  <%= render_slot(action, @row_item.(row)) %>
+                  {render_slot(action, @row_item.(row))}
                 </span>
               </div>
             </td>
@@ -704,12 +715,11 @@ defmodule CloudDbUiWeb.CoreComponents do
   ## Examples
 
       <.list>
-        <:item title="Title"><%= @post.title %></:item>
-        <:item title="Views"><%= @post.views %></:item>
+        <:item title="Title">{@post.title}</:item>
+        <:item title="Views">{@post.views}</:item>
       </.list>
   """
   attr :width_class, :string, default: "w-1/4"
-
   attr :title_text_class, :string, default: "text-zinc-500"
 
   slot :item, required: true do
@@ -726,9 +736,9 @@ defmodule CloudDbUiWeb.CoreComponents do
           class="flex gap-4 py-4 text-sm leading-6 sm:gap-8"
         >
           <dt class={class([@width_class, "flex-none", @title_text_class])}>
-            <%= item.title %>
+            {item.title}
           </dt>
-          <dd class="text-zinc-700"><%= render_slot(item) %></dd>
+          <dd class="text-zinc-700">{render_slot(item)}</dd>
         </div>
       </dl>
     </div>
@@ -757,7 +767,7 @@ defmodule CloudDbUiWeb.CoreComponents do
         ]}
       >
         <.icon name="hero-arrow-left-solid" class="h-3 w-3" />
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </.link>
     </div>
     """
@@ -773,8 +783,9 @@ defmodule CloudDbUiWeb.CoreComponents do
   You can customize the size and colors of the icons by setting
   width, height, and background color classes.
 
-  Icons are extracted from your `assets/vendor/heroicons` directory and bundled
-  within your compiled app.css by the plugin in your `assets/tailwind.config.js`.
+  Icons are extracted from the `deps/heroicons` directory
+  and bundled within your compiled app.css by the plug-in
+  in `assets/tailwind.config.js`.
 
   ## Examples
 
@@ -805,7 +816,7 @@ defmodule CloudDbUiWeb.CoreComponents do
 
   def filter_form(%{meta: meta} = assigns) do
     assigns =
-      assign(assigns, [form: Phoenix.Component.to_form(meta), meta: nil])
+      assign(assigns, [form: Component.to_form(meta), meta: nil])
 
     ~H"""
     <.form
@@ -824,7 +835,7 @@ defmodule CloudDbUiWeb.CoreComponents do
             field={adapt_filter_form_field_errors(i.field)}
             label={i.label}
             type={i.type}
-            phx-debounce={120}
+            phx-debounce="240"
             display_errors={true}
             errors_on_mount={true}
             inline_error={true}
@@ -853,9 +864,8 @@ defmodule CloudDbUiWeb.CoreComponents do
         id={if @id, do: @id <> "-counter"}
         class="flex-1 text-sm text-zinc-700"
       >
-        <%= pagination_result_counter(@meta) %>
+        {pagination_result_counter(@meta)}
       </div>
-
       <div :if={@meta.total_pages}
         class="flex justify-center"
         style="max-height: 2rem;"
@@ -865,7 +875,6 @@ defmodule CloudDbUiWeb.CoreComponents do
           on_paginate={JS.push("paginate")}
         />
       </div>
-
       <div class="flex-1"></div>
     </div>
     """
@@ -874,27 +883,27 @@ defmodule CloudDbUiWeb.CoreComponents do
   ## JS Commands
 
   @spec show(%JS{}, String.t()) :: %JS{}
-  def show(js \\ %JS{}, selector) do
-    JS.show(js, [to: selector, transition: transition_show()])
+  def show(%JS{} = js \\ %JS{}, selector) do
+    JS.show(js, [to: selector, time: 300, transition: transition_show()])
   end
 
   @spec hide(%JS{}, String.t()) :: %JS{}
-  def hide(js \\ %JS{}, selector) do
-    JS.hide(js, [to: selector, transition: transition_hide()])
+  def hide(%JS{} = js \\ %JS{}, selector) do
+    JS.hide(js, [to: selector, time: 200, transition: transition_hide()])
   end
 
   @spec show_modal(%JS{}, String.t()) :: %JS{}
-  def show_modal(js \\ %JS{}, id) do
+  def show_modal(%JS{} = js \\ %JS{}, id) do
     js
     |> JS.show([to: "##{id}"])
-    |> JS.show([to: "##{id}-bg", transition: transition_show()])
+    |> JS.show([to: "##{id}-bg", time: 300, transition: transition_show()])
     |> show("##{id}-container")
     |> JS.add_class("overflow-hidden", [to: "body"])
     |> JS.focus_first(to: "##{id}-content")
   end
 
   @spec hide_modal(%JS{}, String.t()) :: %JS{}
-  def hide_modal(js \\ %JS{}, id) do
+  def hide_modal(%JS{} = js \\ %JS{}, id) do
     js
     |> JS.hide([to: "##{id}-bg", transition: transition_hide()])
     |> hide("##{id}-container")
@@ -1099,9 +1108,9 @@ defmodule CloudDbUiWeb.CoreComponents do
 
   # The `class=""` value for `<.header>`.
   @spec header_class(%{atom() => any()}) :: String.t() | nil
-  defp header_class(%{actions: acts, rest: rest} = _assigns) do
+  defp header_class(%{actions: actions, rest: rest} = _assigns) do
     class([
-      acts != [] && "flex items-center justify-between gap-6",
+      actions != [] && "flex items-center justify-between gap-6",
       rest[:class]
     ])
   end
@@ -1129,6 +1138,8 @@ defmodule CloudDbUiWeb.CoreComponents do
   defp text_input_border_class([]), do: "border-zinc-300 focus:border-zinc-400"
 
   defp text_input_border_class(_), do: "border-rose-400 focus:border-rose-400"
+
+  # TODO: test whether this is this necessary
 
   # Join `classes` into a `class=` attribute value.
   @spec class([String.t()]) :: String.t() | nil

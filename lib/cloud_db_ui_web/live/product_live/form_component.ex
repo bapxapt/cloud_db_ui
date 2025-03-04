@@ -2,13 +2,13 @@ defmodule CloudDbUiWeb.ProductLive.FormComponent do
   use CloudDbUiWeb, :live_component
   use CloudDbUiWeb.FlashTimed, :live_component
 
+  import CloudDbUiWeb.{Utilities, HTML, Form}
+
   alias CloudDbUi.Products
   alias CloudDbUi.Products.{Product, ProductType}
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.{Socket, UploadEntry}
   alias Ecto.Changeset
-
-  import CloudDbUiWeb.{Utilities, HTML, Form}
 
   @type params :: CloudDbUi.Type.params()
 

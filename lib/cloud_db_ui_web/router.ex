@@ -3,6 +3,8 @@ defmodule CloudDbUiWeb.Router do
 
   import CloudDbUiWeb.UserAuth
 
+  alias CloudDbUiWeb.UserAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -67,109 +69,138 @@ defmodule CloudDbUiWeb.Router do
   scope "/", CloudDbUiWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 
-    live_session :redirect_user_away,
-      on_mount: [{CloudDbUiWeb.UserAuth, :redirect_if_user_is_authenticated}] do
-      live "/users/register", UserRegistrationLive, :new
-      live "/users/log_in", UserLoginLive, :new
-      live "/users/reset_password", UserForgotPasswordLive, :new
-      live "/users/reset_password/:token", UserResetPasswordLive, :edit
-    end
+    live_session :redirect_logged_in_user_away,
+      on_mount: [{UserAuth, :redirect_if_user_is_authenticated}] do
+        live "/register", UserRegistrationLive, :new
+        live "/log_in", UserLoginLive, :new
+        live "/reset_password", UserForgotPasswordLive, :new
+        live "/reset_password/:token", UserResetPasswordLive, :edit
+      end
 
-    post "/users/log_in", UserSessionController, :create
+    post "/log_in", UserSessionController, :create
   end
 
   scope "/", CloudDbUiWeb do
     pipe_through [:browser]
 
     get "/log_out", UserSessionController, :delete
-    get "/users/log_out", UserSessionController, :delete
-    delete "/users/log_out", UserSessionController, :delete
+    delete "/log_out", UserSessionController, :delete
 
     live_session :current_user,
-      on_mount: [{CloudDbUiWeb.UserAuth, :mount_current_user}] do
-      live "/users/confirm", UserConfirmationInstructionsLive, :new
-      live "/users/confirm/:token", UserConfirmationLive, :edit
-    end
+      on_mount: [{UserAuth, :mount_current_user}] do
+        live "/confirm_email", UserConfirmationInstructionsLive, :new
+        live "/confirm_email/:token", UserConfirmationLive, :edit
+      end
   end
 
-  scope "/", CloudDbUiWeb do
+  scope "/top_up", CloudDbUiWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    live_session :user_settings,
-      on_mount: [{CloudDbUiWeb.UserAuth, :ensure_authenticated}] do
-      live "/users/settings", UserSettingsLive, :edit
-      live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
-    end
+    live_session :top_up,
+      on_mount: [{UserAuth, :ensure_non_admin}] do
+        live "/", TopUpLive
+      end
+  end
 
-    live_session :admins,
-      on_mount: [{CloudDbUiWeb.UserAuth, :ensure_admin}] do
-      # Only admins can create and directly edit orders.
-      live "/orders/new", OrderLive.Index, :new
-      live "/orders/:id/edit", OrderLive.Index, :edit
-      live "/orders/:id/show/edit", OrderLive.Show, :edit
-      # Only admins can list, create and edit product types.
-      live "/product_types", ProductTypeLive.Index, :index
-      live "/product_types/new", ProductTypeLive.Index, :new
-      live "/product_types/:id/edit", ProductTypeLive.Index, :edit
-      live "/product_types/:id", ProductTypeLive.Show, :show
-      live "/product_types/:id/show", ProductTypeLive.Show, :redirect
-      live "/product_types/:id/show/edit", ProductTypeLive.Show, :edit
-      # Only admins can create and edit products.
-      live "/products/new", ProductLive.Index, :new
-      live "/products/:id/edit", ProductLive.Index, :edit
-      live "/products/:id/show/edit", ProductLive.Show, :edit
-      # Only admins can directly create or directly edit sub-orders.
-      live "/sub-orders", SubOrderLive.Index, :index
-      live "/sub-orders/new", SubOrderLive.Index, :new
-      live "/sub-orders/:id/edit", SubOrderLive.Index, :edit
-      live "/sub-orders/:id", SubOrderLive.Show, :show
-      live "/sub-orders/:id/show", SubOrderLive.Show, :redirect
-      live "/sub-orders/:id/show/edit", SubOrderLive.Show, :edit
-      # Only admins can directly create and edit users.
-      live "/users", UserLive.Index, :index
-      live "/users/new", UserLive.Index, :new
-      live "/users/:id/edit", UserLive.Index, :edit
-      live "/users/:id", UserLive.Show, :show
-      live "/users/:id/show", UserLive.Show, :redirect
-      live "/users/:id/show/edit", UserLive.Show, :edit
-    end
+  scope "/settings", CloudDbUiWeb do
+    pipe_through [:browser, :require_authenticated_user]
 
-    live_session :users_or_admins,
-      on_mount: [{CloudDbUiWeb.UserAuth, :ensure_authenticated}] do
-      live "/orders", OrderLive.Index, :index
-      live "/orders/:id", OrderLive.Show, :show
-      live "/orders/:id/show", OrderLive.Show, :redirect
-      live "/orders/:id/pay", OrderLive.Index, :pay
-      live "/orders/:id/show/:s_id/edit", OrderLive.Show, :edit_suborder
-      live "/orders/:id/show/pay", OrderLive.Show, :pay
-    end
+    live_session :settings,
+      on_mount: [{UserAuth, :ensure_authenticated}] do
+        live "/", UserSettingsLive, :edit
+        live "/confirm_email/:token", UserSettingsLive, :confirm_email
+      end
+  end
+
+  # Only admins can view, edit or directly create users.
+  scope "/users", CloudDbUiWeb do
+    pipe_through [:browser, :require_authenticated_user]
 
     live_session :users,
-      on_mount: [{CloudDbUiWeb.UserAuth, :ensure_non_admin}] do
-      live "/top_up", TopUpLive
-    end
+      on_mount: [{UserAuth, :ensure_admin}] do
+        live "/", UserLive.Index, :index
+        live "/new", UserLive.Index, :new
+        live "/:id", UserLive.Show, :show
+        live "/:id/show", UserLive.Show, :redirect
+        live "/:id/edit", UserLive.Index, :edit
+        live "/:id/show/edit", UserLive.Show, :edit
+      end
+  end
+
+  # Only admins can view, create or edit product types.
+  scope "/product_types", CloudDbUiWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :product_types,
+      on_mount: [{UserAuth, :ensure_admin}] do
+        live "/", ProductTypeLive.Index, :index
+        live "/new", ProductTypeLive.Index, :new
+        live "/:id", ProductTypeLive.Show, :show
+        live "/:id/show", ProductTypeLive.Show, :redirect
+        live "/:id/edit", ProductTypeLive.Index, :edit
+        live "/:id/show/edit", ProductTypeLive.Show, :edit
+      end
+  end
+
+  scope "/products", CloudDbUiWeb do
+    pipe_through [:browser]
+
+    live_session :products,
+      on_mount: [{UserAuth, :mount_current_user}] do
+        # Only admins can create and edit products.
+        live "/new", ProductLive.Index, :new
+        live "/:id/edit", ProductLive.Index, :edit
+        live "/:id/show/edit", ProductLive.Show, :edit
+        # Anyone can view products.
+        live "/", ProductLive.Index, :index
+        live "/:id", ProductLive.Show, :show
+        live "/:id/show", ProductLive.Show, :redirect
+      end
+  end
+
+  scope "/orders", CloudDbUiWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :orders,
+      on_mount: [{UserAuth, :ensure_authenticated}] do
+        # Only admins can directly create or directly edit orders.
+        live "/new", OrderLive.Index, :new
+        live "/:id/edit", OrderLive.Index, :edit
+        live "/:id/show/edit", OrderLive.Show, :edit
+        # Any logged-in user can view orders or change sub-order quantity.
+        live "/", OrderLive.Index, :index
+        live "/:id", OrderLive.Show, :show
+        live "/:id/show", OrderLive.Show, :redirect
+        live "/:id/pay", OrderLive.Index, :pay
+        live "/:id/show/:s_id/edit", OrderLive.Show, :edit_suborder
+        live "/:id/show/pay", OrderLive.Show, :pay
+      end
+  end
+
+  scope "/sub-orders", CloudDbUiWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :suborders,
+      on_mount: [{UserAuth, :ensure_admin}] do
+        # Only admins can directly create or directly edit sub-orders.
+        live "/", SubOrderLive.Index, :index
+        live "/new", SubOrderLive.Index, :new
+        live "/:id", SubOrderLive.Show, :show
+        live "/:id/show", SubOrderLive.Show, :redirect
+        live "/:id/edit", SubOrderLive.Index, :edit
+        live "/:id/show/edit", SubOrderLive.Show, :edit
+      end
   end
 
   scope "/", CloudDbUiWeb do
     pipe_through [:browser]
 
-    live_session :admins_users_guests,
-      on_mount: [{CloudDbUiWeb.UserAuth, :mount_current_user}] do
-      live "/", ProductLive.Index, :to_index
-      live "/products", ProductLive.Index, :index
-      live "/products/:id", ProductLive.Show, :show
-      live "/products/:id/show", ProductLive.Show, :redirect
-    end
-  end
-
-  scope "/", CloudDbUiWeb do
-    pipe_through [:browser]
-
-    live_session :any,
-      on_mount: [{CloudDbUiWeb.UserAuth, :mount_current_user}] do
-      # The module has to be named `ErrorController`:
-      # the templates then will be looked for in `ErrorHTML`.
-      get "/*rest", ErrorController, :not_found
-    end
+    live_session :other,
+      on_mount: [{UserAuth, :mount_current_user}] do
+        live "/", ProductLive.Index, :to_index
+        # The module has to be named `ErrorController`:
+        # the templates then will be looked for in `ErrorHTML`.
+        get "/*rest", ErrorController, :not_found
+      end
   end
 end

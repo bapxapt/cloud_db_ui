@@ -2,15 +2,14 @@ defmodule CloudDbUi.Accounts do
   @moduledoc """
   The Accounts context.
   """
+  import CloudDbUiWeb.Utilities
+  import CloudDbUi.Changeset, [only: [put_changes_from_attrs: 3]]
+  import Ecto.Query, warn: false
 
   alias CloudDbUi.Repo
   alias CloudDbUi.Accounts.{User, UserToken, UserNotifier}
   alias CloudDbUi.Accounts.User.Query
   alias Ecto.Changeset
-
-  import CloudDbUiWeb.Utilities
-  import CloudDbUi.Changeset, [only: [put_changes_from_attrs: 3]]
-  import Ecto.Query, warn: false
 
   @type db_id() :: CloudDbUi.Type.db_id()
   @type attrs() :: CloudDbUi.Type.attrs()
@@ -166,13 +165,21 @@ defmodule CloudDbUi.Accounts do
 
   """
   @spec change_user_registration(%User{}, attrs()) :: %Changeset{}
-  def change_user_registration(%User{} = user, attrs \\ %{}) do
+  def change_user_registration(%User{} = user, %{} = attrs \\ %{}) do
     User.registration_validation_changeset(
       user,
       attrs,
-      [hash_password: false, validate_email: false]
+      [hash_password: false, validate_unique_email: false]
     )
   end
+
+  ## Logging in
+
+  @doc """
+  Return an `%Ecto.Changeset{}` for logging a user in.
+  """
+  @spec log_in_changeset(attrs()) :: %Changeset{}
+  def log_in_changeset(%{} = attrs \\ %{}), do: User.log_in_changeset(attrs)
 
   ## Settings
 
@@ -186,8 +193,8 @@ defmodule CloudDbUi.Accounts do
 
   """
   @spec change_user_email(%User{}, attrs()) :: %Changeset{}
-  def change_user_email(%User{} = user, attrs \\ %{}) do
-    User.email_changeset(user, attrs, [validate_email: false])
+  def change_user_email(%User{} = user, %{} = attrs \\ %{}) do
+    User.email_changeset(user, attrs, [validate_unique_email: false])
   end
 
   @doc """
@@ -289,12 +296,20 @@ defmodule CloudDbUi.Accounts do
 
   ## Examples
 
-      iex> deliver_user_update_email_instructions(user, current_email, &url(~p"/users/settings/confirm_email/#{&1}"))
+      iex> deliver_user_update_email_instructions(user, current_email, &url(~p"/settings/confirm_email/#{&1}"))
       {:ok, %{to: ..., body: ...}}
 
   """
-  def deliver_user_update_email_instructions(%User{} = user, current_email, update_email_url_fun)
-      when is_function(update_email_url_fun, 1) do
+  @spec deliver_user_update_email_instructions(
+          %User{},
+          String.t(),
+          (String.t() -> String.t())
+        ) :: {:ok, %{} | %Swoosh.Email{}}
+  def deliver_user_update_email_instructions(
+        %User{} = user,
+        current_email,
+        fn_update_email_url
+      ) when is_function(fn_update_email_url, 1) do
     {encoded_token, user_token} =
       UserToken.build_email_token(user, "change:#{current_email}")
 
@@ -302,7 +317,7 @@ defmodule CloudDbUi.Accounts do
 
     UserNotifier.deliver_update_email_instructions(
       user,
-      update_email_url_fun.(encoded_token)
+      fn_update_email_url.(encoded_token)
     )
   end
 
@@ -408,10 +423,10 @@ defmodule CloudDbUi.Accounts do
 
   ## Examples
 
-      iex> deliver_user_confirmation_instructions(user, &url(~p"/users/confirm/#{&1}"))
+      iex> deliver_user_confirmation_instructions(user, &url(~p"/confirm_email/#{&1}"))
       {:ok, %{to: ..., body: ...}}
 
-      iex> deliver_user_confirmation_instructions(confirmed, &url(~p"/users/confirm/#{&1}"))
+      iex> deliver_user_confirmation_instructions(confirmed, &url(~p"/confirm_email/#{&1}"))
       {:error, :already_confirmed}
 
   """
@@ -459,7 +474,7 @@ defmodule CloudDbUi.Accounts do
 
   ## Examples
 
-      iex> deliver_user_reset_password_instructions(user, &url(~p"/users/reset_password/#{&1}"))
+      iex> deliver_user_reset_password_instructions(user, &url(~p"/reset_password/#{&1}"))
       {:ok, %{to: ..., body: ...}}
 
   """

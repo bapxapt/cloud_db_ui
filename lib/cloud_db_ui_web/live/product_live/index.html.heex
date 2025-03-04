@@ -79,7 +79,7 @@
   </:action>
   <:action :let={{id, product}}>
     <.link
-      phx-click={js_delete(id, product.paid_orders == 0, product)}
+      phx-click={js_delete(id, deletable?(@current_user, product), product)}
       data-confirm={Actions.data_confirm(@current_user, product)}
     >
       Delete

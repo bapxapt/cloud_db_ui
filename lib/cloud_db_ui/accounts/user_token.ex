@@ -1,9 +1,9 @@
 defmodule CloudDbUi.Accounts.UserToken do
   use Ecto.Schema
 
-  alias CloudDbUi.Accounts.{User, UserToken}
-
   import Ecto.Query
+
+  alias CloudDbUi.Accounts.{User, UserToken}
 
   @hash_algorithm :sha256
   @rand_size 32
@@ -18,7 +18,7 @@ defmodule CloudDbUi.Accounts.UserToken do
     field :token, :binary
     field :context, :string
     field :sent_to, :string
-    belongs_to :user, CloudDbUi.Accounts.User
+    belongs_to :user, User
 
     timestamps([type: :utc_datetime, updated_at: false])
   end
@@ -57,6 +57,7 @@ defmodule CloudDbUi.Accounts.UserToken do
   The token is valid if it matches the value in the database and it has
   not expired (after @session_validity_in_days).
   """
+  @spec verify_session_token_query(binary()) :: {:ok, %Ecto.Query{}}
   def verify_session_token_query(token) do
     query =
       from token in by_token_and_context_query(token, "session"),
@@ -80,9 +81,8 @@ defmodule CloudDbUi.Accounts.UserToken do
   Users can easily adapt the existing code to provide other types of delivery methods,
   for example, by phone numbers.
   """
-  def build_email_token(user, context) do
-    build_hashed_token(user, context, user.email)
-  end
+  @spec build_email_token(%User{}, String.t()) :: {binary(), %UserToken{}}
+  def build_email_token(user, context), do: build_hashed_token(user, context)
 
   @doc """
   Checks if the token is valid and returns its underlying lookup query.
@@ -97,6 +97,8 @@ defmodule CloudDbUi.Accounts.UserToken do
   for resetting the password. For verifying requests to change the email,
   see `verify_change_email_token_query/2`.
   """
+  @spec verify_email_token_query(binary(), String.t()) ::
+          {:ok, %Ecto.Query{}} | :error
   def verify_email_token_query(token, context) do
     case Base.url_decode64(token, padding: false) do
       {:ok, decoded_token} ->
@@ -130,6 +132,8 @@ defmodule CloudDbUi.Accounts.UserToken do
   database and if it has not expired (after @change_email_validity_in_days).
   The context must always start with "change:".
   """
+  @spec verify_change_email_token_query(binary(), String.t()) ::
+          {:ok, %Ecto.Query{}} | :error
   def verify_change_email_token_query(token, "change:" <> _ = context) do
     case Base.url_decode64(token, padding: false) do
       {:ok, decoded_token} ->
@@ -157,27 +161,31 @@ defmodule CloudDbUi.Accounts.UserToken do
   @doc """
   Gets all tokens for the given user for the given contexts.
   """
-  def by_user_and_contexts_query(user, :all) do
+  @spec by_user_and_contexts_query(%User{}, atom() | [String.t()]) ::
+          %Ecto.Query{}
+  def by_user_and_contexts_query(%User{} = user, :all) do
     from t in UserToken, where: t.user_id == ^user.id
   end
 
-  def by_user_and_contexts_query(user, [_ | _] = contexts) do
+  def by_user_and_contexts_query(%User{} = user, [_ | _] = contexts) do
     from t in UserToken, where: t.user_id == ^user.id and t.context in ^contexts
   end
 
-  defp build_hashed_token(user, context, sent_to) do
+  @spec build_hashed_token(%User{}, String.t()) :: {binary(), %UserToken{}}
+  defp build_hashed_token(%User{} = user, context) do
     token = :crypto.strong_rand_bytes(@rand_size)
 
     user_token = %UserToken{
       token: :crypto.hash(@hash_algorithm, token),
       context: context,
-      sent_to: sent_to,
+      sent_to: user.email,
       user_id: user.id
     }
 
     {Base.url_encode64(token, padding: false), user_token}
   end
 
+  @spec days_for_context(String.t()) :: pos_integer()
   defp days_for_context("confirm"), do: @confirm_validity_in_days
 
   defp days_for_context("reset_password"), do: @reset_password_validity_in_days

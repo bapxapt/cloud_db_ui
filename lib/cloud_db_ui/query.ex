@@ -1,20 +1,6 @@
 defmodule CloudDbUi.Query do
   alias Ecto.Query
 
-  # TODO: remove?
-
-  #@doc """
-  #Import `Ecto.Query`, replacing only `&Ecto.Query.join/5`
-  #with &CloudDbUi.Query.join/5.
-  #"""
-  #@spec __using__(keyword()) :: Macro.t()
-  #defmacro __using__(_opts) do
-  #  quote do
-  #    import Ecto.Query, except: [join: 5]
-  #    import CloudDbUi.Query
-  #  end
-  #end
-
   @doc """
   Check whether a named `:as` binding for `join()`ing already exists
   in the `query`.

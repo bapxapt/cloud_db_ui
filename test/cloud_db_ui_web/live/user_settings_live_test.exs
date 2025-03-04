@@ -1,27 +1,27 @@
 defmodule CloudDbUiWeb.UserSettingsLiveTest do
   use CloudDbUiWeb.ConnCase, async: true
 
-  alias CloudDbUi.Accounts
-  alias Phoenix.LiveViewTest.{View, Element}
-
   import Phoenix.LiveViewTest
   import CloudDbUi.AccountsFixtures
 
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
+  alias CloudDbUi.Accounts
+  alias Phoenix.LiveViewTest.{View, Element}
+
+  @type redirect_error() :: CloudDbUi.Type.redirect_error()
 
   describe "Settings page" do
     test "renders settings page", %{conn: conn} do
       {:ok, lv, _html} =
         conn
         |> log_in_user(user_fixture())
-        |> live(~p"/users/settings")
+        |> live(~p"/settings")
 
       assert(has_element?(lv, "button", "Change e-mail"))
       assert(has_element?(lv, "button", "Change password"))
     end
 
     test "redirects if the user is not logged in", %{conn: conn} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/users/settings"))
+      assert_redirect_to_log_in_page(conn, ~p"/settings")
     end
   end
 
@@ -29,7 +29,7 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
     setup [:register_and_log_in_user]
 
     test "updates the email", %{conn: conn, password: pass, user: user} do
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+      {:ok, lv, _html} = live(conn, ~p"/settings")
 
       email_new =
         unique_email()
@@ -47,7 +47,7 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
     end
 
     test "renders errors with invalid data (phx-change)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+      {:ok, lv, _html} = live(conn, ~p"/settings")
 
       assert_form_email_errors(lv, "#email-form")
       assert_user_email_label_change(lv, "#email-form")
@@ -56,7 +56,7 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
     test "renders errors with invalid data (phx-submit)",
          %{conn: conn, user: user} do
       taken = user_fixture().email
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+      {:ok, lv, _html} = live(conn, ~p"/settings")
 
       submit_email_form(
         lv,
@@ -96,7 +96,7 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
 
     test "updates the password", %{conn: conn, user: user, password: pw_old} do
       pw = valid_password() <> "!"
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+      {:ok, lv, _html} = live(conn, ~p"/settings")
 
       form =
         password_form(
@@ -110,7 +110,7 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
       conn_new = follow_trigger_action(form, conn)
       token_new = get_session(conn_new, :user_token)
 
-      assert(redirected_to(conn_new) == ~p"/users/settings")
+      assert(redirected_to(conn_new) == ~p"/settings")
       assert(token_new != get_session(conn, :user_token))
 
       conn_new.assigns.flash
@@ -121,14 +121,14 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
     end
 
     test "renders errors with invalid data (phx-change)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+      {:ok, lv, _html} = live(conn, ~p"/settings")
 
       assert_form_password_errors(lv, "#password-form")
       assert_user_password_label_change(lv, "#password-form")
     end
 
     test "renders errors with invalid data (phx-submit)", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+      {:ok, lv, _html} = live(conn, ~p"/settings")
 
       submit_password_form(
         lv,
@@ -187,8 +187,8 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
          %{conn: conn, user: user, token: token, email: email} do
       {:ok, live_view, _html} =
         conn
-        |> live(~p"/users/settings/confirm_email/#{token}")
-        |> follow_redirect(conn, ~p"/users/settings")
+        |> live(~p"/settings/confirm_email/#{token}")
+        |> follow_redirect(conn, ~p"/settings")
 
       assert(has_flash?(live_view, :info, "E-mail changed successfully."))
       refute(Accounts.get_user_by_email(user.email))
@@ -197,8 +197,8 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
       # Use the same confirmation token again.
       {:ok, live, _html} =
         conn
-        |> live(~p"/users/settings/confirm_email/#{token}")
-        |> follow_redirect(conn, ~p"/users/settings")
+        |> live(~p"/settings/confirm_email/#{token}")
+        |> follow_redirect(conn, ~p"/settings")
 
       assert(has_flash?(live, "E-mail change link is invalid or it has expir"))
       refute(Accounts.get_user_by_email(user.email))
@@ -209,8 +209,8 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
          %{conn: conn, user: user} do
       {:ok, live, _html} =
         conn
-        |> live(~p"/users/settings/confirm_email/BAD_TOKEN")
-        |> follow_redirect(conn, ~p"/users/settings")
+        |> live(~p"/settings/confirm_email/BAD_TOKEN")
+        |> follow_redirect(conn, ~p"/settings")
 
       assert(has_flash?(live, "E-mail change link is invalid or it has expir"))
       assert(Accounts.get_user_by_email(user.email))
@@ -218,27 +218,26 @@ defmodule CloudDbUiWeb.UserSettingsLiveTest do
 
     test "redirects if a user is not logged in", %{token: token} do
       build_conn()
-      |> live(~p"/users/settings/confirm_email/#{token}")
-      |> assert_redirect_to_log_in_page()
+      |> assert_redirect_to_log_in_page(~p"/settings/confirm_email/#{token}")
     end
   end
 
   # Should return a rendered `#email-form`.
   @spec submit_email_form(%View{}, %{atom() => any()}, String.t()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   defp submit_email_form(%View{} = live, user_data, pass) do
     submit(live, "#email-form", %{user: user_data, current_password: pass})
   end
 
   # Should return a rendered `#password-form`.
   @spec change_password_form(%View{}, %{atom() => any()}, String.t()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   defp change_password_form(%View{} = live, user_data, pass) do
     change(live, "#password-form", %{user: user_data, current_password: pass})
   end
 
   @spec submit_password_form(%View{}, %{atom() => any()}, String.t()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   defp submit_password_form(%View{} = live, user_data, pass) do
     submit(live, "#password-form", %{user: user_data, current_password: pass})
   end

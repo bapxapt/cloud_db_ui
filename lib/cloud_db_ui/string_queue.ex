@@ -7,12 +7,11 @@ defmodule CloudDbUi.StringQueue do
   of "already taken" values. They should be added to this collection
   after a unique constraint error occurs.
   """
+  import CloudDbUi.Changeset
 
   alias CloudDbUiWeb.Utilities
   alias Phoenix.LiveView.Socket
   alias Ecto.Changeset
-
-  import CloudDbUi.Changeset
 
   @doc """
   Assign a new queue to the `socket` under the `queue_key`.

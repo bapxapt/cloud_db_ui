@@ -1,12 +1,12 @@
 defmodule CloudDbUiWeb.UserAuthTest do
   use CloudDbUiWeb.ConnCase, async: true
 
+  import CloudDbUi.AccountsFixtures
+
   alias CloudDbUi.Accounts
   alias CloudDbUiWeb.UserAuth
   alias Phoenix.LiveView.Socket
   alias Phoenix.Socket.Broadcast
-
-  import CloudDbUi.AccountsFixtures
 
   @remember_me_cookie "_cloud_db_ui_web_user_remember_me"
 
@@ -299,7 +299,7 @@ defmodule CloudDbUiWeb.UserAuthTest do
         |> UserAuth.require_authenticated_user([])
 
       assert(conn_new.halted)
-      assert(redirected_to(conn_new) == ~p"/users/log_in")
+      assert(redirected_to(conn_new) == ~p"/log_in")
 
       conn_new.assigns.flash
       |> Phoenix.Flash.get(:error)

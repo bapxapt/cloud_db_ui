@@ -18,12 +18,7 @@ defmodule CloudDbUi.Repo.Migrations.CreateUsersAuthTables do
     create unique_index(:users, [:email])
 
     create table(:users_tokens) do
-      add(
-        :user_id,
-        references(:users, [on_delete: :delete_all]),
-        [null: false]
-      )
-
+      add(:user_id, references(:users, [on_delete: :delete_all]), null: false)
       add(:token, :binary, [null: false])
       add(:context, :string, [null: false])
       add(:sent_to, :string)

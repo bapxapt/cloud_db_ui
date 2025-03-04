@@ -35,8 +35,8 @@ defmodule CloudDbUiWeb.UserConfirmationInstructionsLive do
       </.simple_form>
 
       <p class="text-center mt-4">
-        <.link href={~p"/users/register"}>Register</.link>
-        | <.link href={~p"/users/log_in"}>Log in</.link>
+        <.link href={~p"/register"}>Register</.link>
+        | <.link href={~p"/log_in"}>Log in</.link>
       </p>
     </div>
     """
@@ -52,7 +52,7 @@ defmodule CloudDbUiWeb.UserConfirmationInstructionsLive do
     if user = Accounts.get_user_by_email(trim_downcase(untrimmed)) do
       Accounts.deliver_user_confirmation_instructions(
         user,
-        &url(~p"/users/confirm/#{&1}")
+        &url(~p"/confirm_email/#{&1}")
       )
     end
 

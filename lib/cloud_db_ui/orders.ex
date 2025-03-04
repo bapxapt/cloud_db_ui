@@ -2,13 +2,11 @@ defmodule CloudDbUi.Orders do
   @moduledoc """
   The Orders context.
   """
-
   import Ecto.Query, warn: false
 
   alias CloudDbUi.Products.Product
   alias CloudDbUi.Repo
-  alias CloudDbUi.Orders.Order
-  alias CloudDbUi.Orders.SubOrder
+  alias CloudDbUi.Orders.{Order, SubOrder}
   alias CloudDbUi.Accounts.User
   alias Flop.Meta
   alias Ecto.Changeset

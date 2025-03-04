@@ -20,6 +20,7 @@ defmodule CloudDbUi.DataCase do
   alias CloudDbUi.Orders
   alias CloudDbUi.Orders.Order
   alias Ecto.Changeset
+  alias Ecto.Adapters.SQL.Sandbox
 
   using do
     quote do
@@ -41,11 +42,7 @@ defmodule CloudDbUi.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid =
-      Ecto.Adapters.SQL.Sandbox.start_owner!(
-        CloudDbUi.Repo,
-        shared: not tags[:async]
-      )
+    pid = Sandbox.start_owner!(CloudDbUi.Repo, shared: not tags[:async])
 
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
@@ -62,9 +59,7 @@ defmodule CloudDbUi.DataCase do
   def errors_on(%Changeset{} = changeset) do
     Changeset.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _, key ->
-        opts
-        |> Keyword.get(String.to_existing_atom(key), key)
-        |> to_string()
+        "#{Keyword.get(opts, String.to_existing_atom(key), key)}"
       end)
     end)
   end

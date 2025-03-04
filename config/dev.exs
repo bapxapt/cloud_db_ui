@@ -2,8 +2,9 @@ import Config
 
 # Configure the data base.
 config :cloud_db_ui, CloudDbUi.Repo,
-  url: System.get_env("DATABASE_URL") ||
-    "ecto://postgres:root@localhost:5432/cloud_db_ui_dev",
+  url:
+    System.get_env("DATABASE_URL") ||
+      "ecto://postgres:root@localhost:5432/cloud_db_ui_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -21,10 +22,10 @@ config :cloud_db_ui, CloudDbUiWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: false,
-  secret_key_base: "GUvXn5GcD+JE9R2AQu5fXStEmvZgc8gEqJEJmX0ag05UJyyKzcJ9mOKc6YWKwA7X",
+  secret_key_base: "FblQq5NLkTkkjUsSdwlUgX2EHa2r61SF7MqhJ/sKJHAS0HtdZo1nKzlGNQ7GhVdC",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:cloud_db_ui, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:cloud_db_ui, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -54,7 +55,7 @@ config :cloud_db_ui, CloudDbUiWeb.Endpoint,
 config :cloud_db_ui, CloudDbUiWeb.Endpoint,
   live_reload: [
     patterns: [
-      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
       ~r"lib/cloud_db_ui_web/(controllers|live|components)/.*(ex|heex)$"
     ]
@@ -73,8 +74,11 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation.
 config :phoenix, :plug_init_mode, :runtime
 
-# Include HEEx debug annotations as HTML comments in rendered markup.
-config :phoenix_live_view, :debug_heex_annotations, true
+config :phoenix_live_view,
+  # Include HEEx debug annotations as HTML comments in rendered markup.
+  debug_heex_annotations: true,
+  # Enable helpful, but potentially expensive runtime checks.
+  enable_expensive_runtime_checks: true
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false

@@ -6,11 +6,11 @@ defmodule CloudDbUiWeb.ProductTypeLive.Index do
     schema_field_module: CloudDbUi.Products.ProductType.FlopSchemaFields,
     stream_name: :types
 
+  import CloudDbUiWeb.JavaScript
+
   alias CloudDbUiWeb.ProductTypeLive.{FormComponent, Actions}
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
-
-  import CloudDbUiWeb.JavaScript
 
   @type params() :: CloudDbUi.Type.params()
 

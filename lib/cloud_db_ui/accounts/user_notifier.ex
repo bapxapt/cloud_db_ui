@@ -1,8 +1,8 @@
 defmodule CloudDbUi.Accounts.UserNotifier do
+  import Swoosh.Email
+
   alias CloudDbUi.Accounts.User
   alias CloudDbUi.Mailer
-
-  import Swoosh.Email
 
   @doc """
   Deliver instructions to confirm account.

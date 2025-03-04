@@ -1,15 +1,14 @@
 defmodule CloudDbUi.AccountsTest do
   use CloudDbUi.DataCase
 
-  alias CloudDbUi.Orders
-  alias CloudDbUi.Accounts
+  import CloudDbUi.{AccountsFixtures, OrdersFixtures, ProductsFixtures}
+
+  alias CloudDbUi.{Orders, Accounts}
   alias CloudDbUi.Accounts.{User, UserToken}
   alias Ecto.Changeset
   alias Flop.Meta
 
-  import CloudDbUi.{AccountsFixtures, OrdersFixtures, ProductsFixtures}
-
-  @invalid_attrs %{email: "bad", password: "¢", password_confirmation: "_"}
+  @invalid_attrs %{email: "¢", password: "¢", password_confirmation: "_"}
 
   @valid_attrs %{
     email: "user_a_b_c_d@userabcd.pl",

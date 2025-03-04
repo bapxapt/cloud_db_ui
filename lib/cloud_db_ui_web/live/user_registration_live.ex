@@ -1,15 +1,14 @@
 defmodule CloudDbUiWeb.UserRegistrationLive do
   use CloudDbUiWeb, :live_view
 
+  import CloudDbUi.StringQueue
+  import CloudDbUiWeb.{HTML, Form}
+
   alias CloudDbUi.Accounts
   alias CloudDbUi.Accounts.User
   alias Ecto.Changeset
   alias Phoenix.LiveView.Socket
   alias Phoenix.HTML.Form
-
-  import CloudDbUi.StringQueue
-  import CloudDbUiWeb.HTML
-  import CloudDbUiWeb.Form
 
   @type params() :: CloudDbUi.Type.params()
 
@@ -17,6 +16,8 @@ defmodule CloudDbUiWeb.UserRegistrationLive do
   @taken_emails_limit 10
 
   # TODO: maybe keep a queue of valid e-mails?
+
+  # TODO: phx-hook="CharacterCounter" with data-value="" for the character counters to ignore phx-debounce
 
   @impl true
   def render(assigns) do
@@ -34,7 +35,7 @@ defmodule CloudDbUiWeb.UserRegistrationLive do
         phx-submit="save"
         phx-change="validate"
         phx-trigger-action={@trigger_submit}
-        action={~p"/users/log_in?_action=registered"}
+        action={~p"/log_in?_action=registered"}
         method="post"
       >
         <.error :if={@check_errors}>
@@ -45,18 +46,21 @@ defmodule CloudDbUiWeb.UserRegistrationLive do
           field={@form[:email]}
           type="text"
           label={label_text("E-mail address", @form[:email].value, 160)}
+          phx-debounce="360"
           required
         />
         <.input
           field={@form[:password]}
           type="password"
           label={label_text("Password", @form[:password].value, 72)}
+          phx-debounce="360"
           required
         />
         <.input
           field={@form[:password_confirmation]}
           type="password"
           label={label_text_password_confirmation(@form)}
+          phx-debounce="360"
         />
 
         <:actions>
@@ -135,7 +139,7 @@ defmodule CloudDbUiWeb.UserRegistrationLive do
     {:ok, _} =
       Accounts.deliver_user_confirmation_instructions(
         user,
-        &url(~p"/users/confirm/#{&1}")
+        &url(~p"/confirm_email/#{&1}")
       )
 
     socket
@@ -172,7 +176,7 @@ defmodule CloudDbUiWeb.UserRegistrationLive do
   defp subtitle() do
     [
       "Already registered? ",
-      link("Log in", ~p"/users/log_in", subtitle_link_class()),
+      link("Log in", ~p"/log_in", subtitle_link_class()),
       " to your account now."
     ]
   end

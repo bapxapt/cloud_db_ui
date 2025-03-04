@@ -1,13 +1,13 @@
 defmodule CloudDbUi.Products.ProductType do
   use Ecto.Schema
 
-  alias CloudDbUi.Products.Product
-  alias Ecto.Changeset
-
   import CloudDbUi.Products.ProductType.FlopSchemaFields
   import CloudDbUiWeb.Utilities
   import CloudDbUi.Changeset
   import Ecto.Changeset
+
+  alias CloudDbUi.Products.Product
+  alias Ecto.Changeset
 
   @type attrs() :: CloudDbUi.Type.attrs()
   @type errors() :: CloudDbUi.Type.errors()

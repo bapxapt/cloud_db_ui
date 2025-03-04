@@ -6,7 +6,7 @@ defmodule CloudDbUiWeb.UserRegistrationLiveTest do
 
   describe "Registration page" do
     test "renders registration page", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+      {:ok, lv, _html} = live(conn, ~p"/register")
 
       assert(has_element?(lv, "input#user_email"))
       assert(has_element?(lv, "input#user_password"))
@@ -18,13 +18,13 @@ defmodule CloudDbUiWeb.UserRegistrationLiveTest do
       {:ok, _conn} =
         conn
         |> log_in_user(user_fixture())
-        |> live(~p"/users/register")
+        |> live(~p"/register")
         |> follow_redirect(conn, ~p"/")
         |> assert()
     end
 
     test "renders errors for invalid data", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+      {:ok, lv, _html} = live(conn, ~p"/register")
 
       assert_form_email_errors(lv, "#registration-form")
       assert_form_password_errors(lv, "#registration-form")
@@ -35,7 +35,7 @@ defmodule CloudDbUiWeb.UserRegistrationLiveTest do
 
   describe "register user" do
     test "creates account and logs the user in", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+      {:ok, lv, _html} = live(conn, ~p"/register")
 
       email =
         unique_email()
@@ -67,7 +67,7 @@ defmodule CloudDbUiWeb.UserRegistrationLiveTest do
 
     test "renders errors for a duplicated e-mail", %{conn: conn} do
       user = user_fixture()
-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+      {:ok, lv, _html} = live(conn, ~p"/register")
 
       submit(
         lv,
@@ -85,13 +85,12 @@ defmodule CloudDbUiWeb.UserRegistrationLiveTest do
 
   describe "registration navigation" do
     test "redirects when \"Log in\" is clicked", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/register")
+      {:ok, lv, _html} = live(conn, ~p"/register")
 
       {:ok, conn_new} =
         lv
-        |> element(~s|main a:fl-contains("Log in")|)
-        |> render_click()
-        |> follow_redirect(conn, ~p"/users/log_in")
+        |> click(~s|main a:fl-contains("Log in")|)
+        |> follow_redirect(conn, ~p"/log_in")
 
       assert(conn_new.resp_body =~ "Log in to account")
     end

@@ -1,15 +1,13 @@
 defmodule CloudDbUiWeb.SubOrderLive.FormComponent do
   use CloudDbUiWeb, :live_component
 
-  alias CloudDbUi.Orders
-  alias CloudDbUi.Orders.Order
-  alias CloudDbUi.Orders.SubOrder
-  alias CloudDbUi.Products
+  import CloudDbUiWeb.{Utilities, Form}
+
+  alias CloudDbUi.{Orders, Products}
+  alias CloudDbUi.Orders.{Order, SubOrder}
   alias CloudDbUi.Products.Product
   alias Phoenix.LiveView.Socket
   alias Phoenix.HTML.Form
-
-  import CloudDbUiWeb.{Utilities, Form}
 
   @type params :: CloudDbUi.Type.params()
   @type errors :: CloudDbUi.Type.errors()

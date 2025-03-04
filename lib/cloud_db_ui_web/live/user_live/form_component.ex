@@ -1,14 +1,14 @@
 defmodule CloudDbUiWeb.UserLive.FormComponent do
   use CloudDbUiWeb, :live_component
 
+  import CloudDbUiWeb.{Utilities, HTML}
+  import CloudDbUi.{StringQueue, Changeset}
+
   alias CloudDbUi.Accounts
   alias CloudDbUi.Accounts.User
   alias Phoenix.LiveView.Socket
-  alias Ecto.Changeset
   alias Phoenix.HTML.Form
-
-  import CloudDbUiWeb.{Utilities, HTML}
-  import CloudDbUi.{StringQueue, Changeset}
+  alias Ecto.Changeset
 
   @type params :: CloudDbUi.Type.params()
 
@@ -66,7 +66,7 @@ defmodule CloudDbUiWeb.UserLive.FormComponent do
           :if={@display_password_field?}
           field={@form[:password]}
           type="password"
-          phx-debounce={240}
+          phx-debounce="360"
           label={label_text_password(@form, @action)}
         />
         <.input

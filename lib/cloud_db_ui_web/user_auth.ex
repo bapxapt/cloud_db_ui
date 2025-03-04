@@ -14,7 +14,7 @@ defmodule CloudDbUiWeb.UserAuth do
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
-  # the token expiry itself in UserToken.
+  # the token expiry itself in `UserToken`.
   @max_age 60 * 60 * 24 * 60
   @remember_me_cookie "_cloud_db_ui_web_user_remember_me"
   @remember_me_options [sign: true, max_age: @max_age, same_site: "Lax"]
@@ -32,7 +32,7 @@ defmodule CloudDbUiWeb.UserAuth do
   if you are not using LiveView.
   """
   @spec log_in_user(%Plug.Conn{}, %User{}, params()) :: %Plug.Conn{}
-  def log_in_user(conn, user, params \\ %{}) do
+  def log_in_user(%Plug.Conn{} = conn, user, params \\ %{}) do
     token = Accounts.generate_user_session_token(user)
     user_return_to = get_session(conn, :user_return_to)
 
@@ -49,7 +49,7 @@ defmodule CloudDbUiWeb.UserAuth do
   It clears all session data for safety. See `&renew_session/1`.
   """
   @spec log_out_user(%Plug.Conn{}) :: %Plug.Conn{}
-  def log_out_user(conn) do
+  def log_out_user(%Plug.Conn{} = conn) do
     user_token = get_session(conn, :user_token)
     user_token && Accounts.delete_user_session_token(user_token)
 
@@ -68,7 +68,7 @@ defmodule CloudDbUiWeb.UserAuth do
   and remember me token.
   """
   @spec fetch_current_user(%Plug.Conn{}, keyword()) :: %Plug.Conn{}
-  def fetch_current_user(conn, _opts \\ []) do
+  def fetch_current_user(%Plug.Conn{} = conn, _opts \\ []) do
     {token, conn_new} = ensure_user_token(conn)
     user = Accounts.get_user_by_session_token(token)
 
@@ -126,7 +126,7 @@ defmodule CloudDbUiWeb.UserAuth do
       socket_new =
         socket
         |> FlashTimed.put(:error, "You must log in to access this page.")
-        |> Phoenix.LiveView.redirect(to: ~p"/users/log_in")
+        |> Phoenix.LiveView.redirect(to: ~p"/log_in")
 
       {:halt, socket_new}
     end
@@ -181,11 +181,11 @@ defmodule CloudDbUiWeb.UserAuth do
   end
 
   @doc """
-  Used for routes that require the user to not be authenticated.
+  Used for routes that require the user to be not authenticated.
   """
   @spec redirect_if_user_is_authenticated(%Plug.Conn{}, keyword()) ::
           %Plug.Conn{}
-  def redirect_if_user_is_authenticated(conn, _opts) do
+  def redirect_if_user_is_authenticated(%Plug.Conn{} = conn, _opts) do
     if conn.assigns[:current_user] do
       conn
       |> redirect([to: signed_in_path()])
@@ -202,14 +202,14 @@ defmodule CloudDbUiWeb.UserAuth do
   they use the application at all, here would be a good place.
   """
   @spec require_authenticated_user(%Plug.Conn{}, keyword()) :: %Plug.Conn{}
-  def require_authenticated_user(conn, _opts) do
+  def require_authenticated_user(%Plug.Conn{} = conn, _opts) do
     if conn.assigns[:current_user] do
       conn
     else
       conn
       |> put_flash(:error, "You must log in to access this page.")
       |> maybe_store_return_to()
-      |> redirect(to: ~p"/users/log_in")
+      |> redirect(to: ~p"/log_in")
       |> halt()
     end
   end
@@ -256,7 +256,7 @@ defmodule CloudDbUiWeb.UserAuth do
   #     end
   #
   @spec renew_session(%Plug.Conn{}) :: %Plug.Conn{}
-  defp renew_session(conn) do
+  defp renew_session(%Plug.Conn{} = conn) do
     delete_csrf_token()
 
     conn
@@ -265,7 +265,7 @@ defmodule CloudDbUiWeb.UserAuth do
   end
 
   @spec ensure_user_token(%Plug.Conn{}) :: {binary() | nil, %Plug.Conn{}}
-  defp ensure_user_token(conn) do
+  defp ensure_user_token(%Plug.Conn{} = conn) do
     if token = get_session(conn, :user_token) do
       {token, conn}
     else
@@ -289,7 +289,7 @@ defmodule CloudDbUiWeb.UserAuth do
   end
 
   @spec put_token_in_session(%Plug.Conn{}, binary()) :: %Plug.Conn{}
-  defp put_token_in_session(conn, token) do
+  defp put_token_in_session(%Plug.Conn{} = conn, token) do
     conn
     |> put_session(:user_token, token)
     |> put_session(
@@ -299,12 +299,12 @@ defmodule CloudDbUiWeb.UserAuth do
   end
 
   @spec maybe_store_return_to(%Plug.Conn{}) :: %Plug.Conn{}
-  defp maybe_store_return_to(%{method: "GET"} = conn) do
+  defp maybe_store_return_to(%Plug.Conn{method: "GET"} = conn) do
     put_session(conn, :user_return_to, current_path(conn))
   end
 
-  # `conn.method` is not `"GET"`.
-  defp maybe_store_return_to(conn), do: conn
+  # `conn.method` is not equal to `"GET"`.
+  defp maybe_store_return_to(%Plug.Conn{} = conn), do: conn
 
   @spec signed_in_path() :: String.t()
   defp signed_in_path(), do: ~p"/"

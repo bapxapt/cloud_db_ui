@@ -5,17 +5,16 @@ defmodule CloudDbUiWeb.ProductLive.Actions do
     router: CloudDbUiWeb.Router,
     statics: CloudDbUiWeb.static_paths()
 
+  import CloudDbUiWeb.{HTML, Utilities}
+  import Phoenix.{Component, LiveView}
+
   alias CloudDbUi.Accounts.User
-  alias CloudDbUi.Products
+  alias CloudDbUi.{Products, Orders}
   alias CloudDbUi.Products.Product
-  alias CloudDbUi.Orders
   alias CloudDbUi.Orders.{Order, SubOrder}
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
   alias Ecto.Changeset
-
-  import CloudDbUiWeb.{HTML, Utilities}
-  import Phoenix.{Component, LiveView}
 
   @type params :: CloudDbUi.Type.params()
 
@@ -28,22 +27,26 @@ defmodule CloudDbUiWeb.ProductLive.Actions do
     |> assign(:product, nil)
   end
 
-  # An admin can create a product.
-  def apply_action(
-        %{assigns: %{current_user: %{admin: true}}} = socket,
-        :new,
-        _params
-      ) do
+  # A not-logged-in guest cannot create a product.
+  def apply_action(%{assigns: %{current_user: nil}} = socket, :new, _params) do
     socket
-    |> assign(:page_title, page_title(socket.assigns.live_action))
-    |> assign(:product, %Product{orders: 0})
+    |> FlashTimed.put(:error, "You must log in to access this page.")
+    |> redirect([to: ~p"/log_in"])
   end
 
-  # A user cannot create products.
-  def apply_action(socket, :new, _params) do
+  # A non-administrator user cannot create a product.
+  def apply_action(%{assigns: %{current_user: user}} = socket, :new, _params)
+      when not user.admin do
     socket
     |> FlashTimed.put(:error, "Only an administrator may access this page.")
     |> push_patch([to: ~p"/products"])
+  end
+
+  # An admin can create a product.
+  def apply_action(%{assigns: %{current_user: _admin}} = socket, :new, _) do
+    socket
+    |> assign(:page_title, page_title(socket.assigns.live_action))
+    |> assign(:product, %Product{orders: 0})
   end
 
   def apply_action(socket, :to_index, _params) do
@@ -66,25 +69,27 @@ defmodule CloudDbUiWeb.ProductLive.Actions do
 
   ## Both `Index` and `Show`.
 
-  # An admin can edit any product.
+  # A not-logged-in guest cannot edit a product.
+  def apply_action(%{assigns: %{current_user: nil}} = socket, :edit, _, _) do
+    socket
+    |> FlashTimed.put(:error, "You must log in to access this page.")
+    |> redirect([to: ~p"/log_in"])
+  end
+
+  # A user cannot edit a product.
+  def apply_action(%{assigns: %{current_user: user}} = socket, :edit, _, url)
+      when not user.admin do
+    socket
+    |> FlashTimed.put(:error, "Only an administrator may access this page.")
+    |> push_patch([to: url])
+  end
+
+  # An admin can edit a product.
   @spec apply_action(%Socket{}, atom(), params(), String.t()) :: %Socket{}
-  def apply_action(
-        %{assigns: %{current_user: %{admin: true}}} = socket,
-        :edit,
-        %{"id" => id} = _params,
-        _url_back) do
+  def apply_action(socket, :edit, %{"id" => id} = _params, _url_back) do
     socket
     |> assign(:page_title, page_title(socket.assigns.live_action, id))
     |> maybe_assign_product(id)
-  end
-
-  # A user cannot edit products.
-  # Admin restrictions in the router do not help with `patch`es,
-  # so put the flash manually.
-  def apply_action(socket, :edit, %{"id" => _id} = _params, url_back) do
-    socket
-    |> FlashTimed.put(:error, "Only an administrator may access this page.")
-    |> push_patch([to: url_back])
   end
 
   # A guest attempted to order a product.
@@ -92,7 +97,7 @@ defmodule CloudDbUiWeb.ProductLive.Actions do
   def order_product!(%{assigns: %{current_user: nil}} = socket, _so_params) do
     socket
     |> FlashTimed.put(:error, "You must log in to order products.")
-    |> redirect([to: ~p"/users/log_in"])
+    |> redirect([to: ~p"/log_in"])
   end
 
   # An admin attempted to order a product.

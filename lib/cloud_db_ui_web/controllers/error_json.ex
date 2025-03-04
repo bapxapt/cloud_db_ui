@@ -1,4 +1,9 @@
 defmodule CloudDbUiWeb.ErrorJSON do
+  @moduledoc """
+  This module is invoked by your endpoint in case of errors on JSON requests.
+
+  See `config/config.exs`.
+  """
   alias Phoenix.Controller
 
   # If you want to customize a particular status code,

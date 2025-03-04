@@ -1,22 +1,22 @@
 defmodule CloudDbUiWeb.UserLiveTest do
   use CloudDbUiWeb.ConnCase
 
+  import CloudDbUi.{AccountsFixtures, OrdersFixtures}
+  import Phoenix.LiveViewTest
+
   alias CloudDbUi.{Accounts, DataCase}
   alias CloudDbUi.Accounts.User
   alias Phoenix.LiveViewTest.View
 
-  import CloudDbUi.{AccountsFixtures, OrdersFixtures}
-  import Phoenix.LiveViewTest
-
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
+  @type redirect_error() :: CloudDbUi.Type.redirect_error()
 
   describe "Index, a not-logged-in guest" do
     setup [:create_user]
 
     test "gets redirected away", %{conn: conn, other_user: user} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/users"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/users/new"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/users/#{user}/edit"))
+      assert_redirect_to_log_in_page(conn, ~p"/users")
+      assert_redirect_to_log_in_page(conn, ~p"/users/new")
+      assert_redirect_to_log_in_page(conn, ~p"/users/#{user}/edit")
     end
   end
 
@@ -24,9 +24,9 @@ defmodule CloudDbUiWeb.UserLiveTest do
     setup [:register_and_log_in_user, :create_user]
 
     test "gets redirected away", %{conn: conn, other_user: user} do
-      assert_redirect_to_main_page(live(conn, ~p"/users"))
-      assert_redirect_to_main_page(live(conn, ~p"/users/new"))
-      assert_redirect_to_main_page(live(conn, ~p"/users/#{user}/edit"))
+      assert_redirect_to_main_page(conn, ~p"/users")
+      assert_redirect_to_main_page(conn, ~p"/users/new")
+      assert_redirect_to_main_page(conn, ~p"/users/#{user}/edit")
     end
   end
 
@@ -618,9 +618,9 @@ defmodule CloudDbUiWeb.UserLiveTest do
     setup [:create_user]
 
     test "gets redirected away", %{conn: conn, other_user: user} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/users/#{user}"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/users/#{user}/show"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/users/#{user}/show/edit"))
+      assert_redirect_to_log_in_page(conn, ~p"/users/#{user}")
+      assert_redirect_to_log_in_page(conn, ~p"/users/#{user}/show")
+      assert_redirect_to_log_in_page(conn, ~p"/users/#{user}/show/edit")
     end
   end
 
@@ -628,9 +628,9 @@ defmodule CloudDbUiWeb.UserLiveTest do
     setup [:register_and_log_in_user, :create_user]
 
     test "gets redirected away", %{conn: conn, other_user: user} do
-      assert_redirect_to_main_page(live(conn, ~p"/users/#{user}"))
-      assert_redirect_to_main_page(live(conn, ~p"/users/#{user}/show"))
-      assert_redirect_to_main_page(live(conn, ~p"/users/#{user}/show/edit"))
+      assert_redirect_to_main_page(conn, ~p"/users/#{user}")
+      assert_redirect_to_main_page(conn, ~p"/users/#{user}/show")
+      assert_redirect_to_main_page(conn, ~p"/users/#{user}/show/edit")
     end
   end
 
@@ -813,7 +813,8 @@ defmodule CloudDbUiWeb.UserLiveTest do
   end
 
   # Should return a rendered `#user-form`.
-  @spec change_form(%View{}, %{atom() => any()}) :: html_or_redirect()
+  @spec change_form(%View{}, %{atom() => any()}) ::
+          String.t() | redirect_error()
   defp change_form(%View{} = live_view, user_data) do
     change(live_view, "#user-form", %{user: user_data})
   end

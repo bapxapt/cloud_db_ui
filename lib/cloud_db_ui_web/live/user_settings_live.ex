@@ -1,5 +1,4 @@
 defmodule CloudDbUiWeb.UserSettingsLive do
-  alias CloudDbUiWeb.Form
   use CloudDbUiWeb, :live_view
   use CloudDbUiWeb.FlashTimed, :live_view
 
@@ -11,8 +10,7 @@ defmodule CloudDbUiWeb.UserSettingsLive do
   alias Ecto.Changeset
 
   import CloudDbUi.StringQueue
-  import CloudDbUiWeb.HTML
-  import CloudDbUiWeb.Form
+  import CloudDbUiWeb.{HTML, Form}
 
   @type params() :: CloudDbUi.Type.params()
 
@@ -20,6 +18,8 @@ defmodule CloudDbUiWeb.UserSettingsLive do
   @taken_emails_limit 10
 
   # TODO: maybe keep a queue of valid e-mails?
+
+  # TODO: phx-hook="CharacterCounter" with data-value="" for the character counters to ignore phx-debounce
 
   @impl true
   def render(assigns) do
@@ -48,6 +48,8 @@ defmodule CloudDbUiWeb.UserSettingsLive do
             field={@email_form[:email]}
             type="text"
             label={label_text_email(@email_form)}
+            phx-hook="CharacterCounter"
+            phx-debounce="360"
             required
           />
           <.input
@@ -71,7 +73,7 @@ defmodule CloudDbUiWeb.UserSettingsLive do
           for={@password_form}
           id="password-form"
           bg_class="bg-green-100/90"
-          action={~p"/users/log_in?_action=password_updated"}
+          action={~p"/log_in?_action=password_updated"}
           method="post"
           phx-change="validate_password"
           phx-submit="update_password"
@@ -87,13 +89,16 @@ defmodule CloudDbUiWeb.UserSettingsLive do
             field={@password_form[:password]}
             type="password"
             label={label_text_password(@password_form)}
+            phx-hook="CharacterCounter"
+            phx-debounce="360"
             required
           />
           <.input
             field={@password_form[:password_confirmation]}
             type="password"
-            phx-debounce="300"
             label={label_text_password_confirmation(@password_form)}
+            phx-hook="CharacterCounter"
+            phx-debounce="360"
           />
           <.input
             field={@password_form[:current_password]}
@@ -154,7 +159,7 @@ defmodule CloudDbUiWeb.UserSettingsLive do
           "E-mail change link is invalid or it has expired."
         )
     end
-    |> push_navigate([to: ~p"/users/settings"])
+    |> push_navigate([to: ~p"/settings"])
   end
 
   # No `"token"` key in params, or `"token"` is in params, but the socket
@@ -224,7 +229,7 @@ defmodule CloudDbUiWeb.UserSettingsLive do
     Accounts.deliver_user_update_email_instructions(
       applied_user,
       socket.assigns.current_user.email,
-      &url(~p"/users/settings/confirm_email/#{&1}")
+      &url(~p"/settings/confirm_email/#{&1}")
     )
 
     socket

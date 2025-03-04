@@ -19,7 +19,7 @@ defmodule CloudDbUiWeb.UserResetPasswordLiveTest do
 
   describe "Reset password page" do
     test "renders the page with a valid token", %{conn: conn, token: token} do
-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+      {:ok, lv, _html} = live(conn, ~p"/reset_password/#{token}")
 
       assert(has_element?(lv, "button", "Reset password"))
     end
@@ -27,14 +27,14 @@ defmodule CloudDbUiWeb.UserResetPasswordLiveTest do
     test "does not render the page with an invalid token", %{conn: conn} do
       {:ok, %{assigns: %{flash: flash}} = _conn_new} =
         conn
-        |> live(~p"/users/reset_password/BAD_TOKEN")
+        |> live(~p"/reset_password/BAD_TOKEN")
         |> follow_redirect(conn, ~p"/")
 
       assert(flash["error"] =~ "Reset password link is invalid or it has expi")
     end
 
     test "renders errors for invalid data", %{conn: conn, token: token} do
-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+      {:ok, lv, _html} = live(conn, ~p"/reset_password/#{token}")
 
       assert_form_password_errors(lv, "#reset-form")
       assert_user_password_label_change(lv, "#reset-form")
@@ -43,7 +43,7 @@ defmodule CloudDbUiWeb.UserResetPasswordLiveTest do
 
   describe "Reset password" do
     test "resets password once", %{conn: conn, token: token, user: user} do
-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+      {:ok, lv, _html} = live(conn, ~p"/reset_password/#{token}")
 
       {:ok, conn} =
         lv
@@ -51,7 +51,7 @@ defmodule CloudDbUiWeb.UserResetPasswordLiveTest do
           "#reset-form",
           %{user: %{password: "New.1234", password_confirmation: "New.1234"}}
         )
-        |> follow_redirect(conn, ~p"/users/log_in")
+        |> follow_redirect(conn, ~p"/log_in")
 
       conn.assigns.flash
       |> Phoenix.Flash.get(:info)
@@ -62,7 +62,7 @@ defmodule CloudDbUiWeb.UserResetPasswordLiveTest do
     end
 
     test "does not reset password on invalid data", %{conn: conn, token: token} do
-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+      {:ok, lv, _html} = live(conn, ~p"/reset_password/#{token}")
 
       submit(
         lv,
@@ -86,26 +86,24 @@ defmodule CloudDbUiWeb.UserResetPasswordLiveTest do
 
   describe "Reset password navigation" do
     test "redirects when \"Log in\" is clicked", %{conn: conn, token: token} do
-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+      {:ok, lv, _html} = live(conn, ~p"/reset_password/#{token}")
 
       {:ok, conn_new} =
         lv
-        |> element(~s|main a:fl-contains("Log in")|)
-        |> render_click()
-        |> follow_redirect(conn, ~p"/users/log_in")
+        |> click(~s|main a:fl-contains("Log in")|)
+        |> follow_redirect(conn, ~p"/log_in")
 
       assert(conn_new.resp_body =~ "Log in to account")
     end
 
     test "redirects when \"Register\" is clicked",
          %{conn: conn, token: token} do
-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+      {:ok, lv, _html} = live(conn, ~p"/reset_password/#{token}")
 
       {:ok, conn_new} =
         lv
-        |> element(~s|main a:fl-contains("Register")|)
-        |> render_click()
-        |> follow_redirect(conn, ~p"/users/register")
+        |> click(~s|main a:fl-contains("Register")|)
+        |> follow_redirect(conn, ~p"/register")
 
       assert(conn_new.resp_body =~ "Create an account")
     end

@@ -1,30 +1,33 @@
 defmodule CloudDbUiWeb.ProductLiveTest do
   use CloudDbUiWeb.ConnCase
 
-  alias CloudDbUi.DataCase
+  import Phoenix.LiveViewTest
+  import CloudDbUi.{ProductsFixtures, OrdersFixtures, AccountsFixtures}
+
   alias CloudDbUi.Accounts.User
-  alias CloudDbUi.Products
+  alias CloudDbUi.{DataCase, Products}
   alias CloudDbUi.Products.{Product, ProductType}
   alias CloudDbUi.Orders.SubOrder
   alias Phoenix.LiveViewTest.View
   alias Plug.Conn
 
-  import Phoenix.LiveViewTest
-  import CloudDbUi.{ProductsFixtures, OrdersFixtures, AccountsFixtures}
-
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
+  @type redirect_error() :: CloudDbUi.Type.redirect_error()
   @type upload_entry() :: CloudDbUi.Type.upload_entry()
 
   describe "Index, a not-logged-in guest" do
     setup [:create_product]
 
     test "gets redirected away", %{conn: conn, product: product} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/products/new"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/products/#{product}/edit"))
+      assert_redirect_to_log_in_page(conn, ~p"/products/new")
+      assert_redirect_to_log_in_page(conn, ~p"/products/#{product}/edit")
     end
 
     test "lists only orderable products", %{conn: conn, product: product} do
       test_user_guest_lists_only_orderable_products(conn, product)
+    end
+
+    test "cannot delete a product in listing", %{conn: conn, product: prod} do
+      test_user_guest_cannot_delete_product_in_listing(conn, prod)
     end
 
     test "gets redirected away when trying to order a product",
@@ -33,7 +36,7 @@ defmodule CloudDbUiWeb.ProductLiveTest do
 
       order_product(index_live, product, 123)
 
-      flash = assert_redirect(index_live, ~p"/users/log_in")
+      flash = assert_redirect(index_live, ~p"/log_in")
 
       assert(flash["error"] =~ "You must log in")
     end
@@ -95,8 +98,8 @@ defmodule CloudDbUiWeb.ProductLiveTest do
     setup [:register_and_log_in_user, :create_product]
 
     test "gets redirected away", %{conn: conn, product: product} do
-      assert_redirect_to_main_page(live(conn, ~p"/products/new"))
-      assert_redirect_to_main_page(live(conn, ~p"/products/#{product}/edit"))
+      assert_redirect_to_index_or_show(conn, ~p"/products/new")
+      assert_redirect_to_index_or_show(conn, ~p"/products/#{product}/edit")
     end
 
     test "lists only orderable products", %{conn: conn, product: product} do
@@ -141,6 +144,10 @@ defmodule CloudDbUiWeb.ProductLiveTest do
       {:ok, index_live, _html} = live(conn, ~p"/products")
 
       assert_order_invalid_quantity(index_live, product)
+    end
+
+    test "cannot delete a product in listing", %{conn: conn, product: prod} do
+      test_user_guest_cannot_delete_product_in_listing(conn, prod)
     end
 
     test "cannot order when the resulting quantity would exceed the limit",
@@ -790,9 +797,7 @@ defmodule CloudDbUiWeb.ProductLiveTest do
     setup [:create_product]
 
     test "gets redirected away", %{conn: conn, product: product} do
-      conn
-      |> live(~p"/products/#{product}/show/edit")
-      |> assert_redirect_to_log_in_page()
+      assert_redirect_to_log_in_page(conn, ~p"/products/#{product}/show/edit")
     end
 
     test "can view an orderable product", %{conn: conn, product: product} do
@@ -804,11 +809,7 @@ defmodule CloudDbUiWeb.ProductLiveTest do
     end
 
     test "cannot view a non-orderable product", %{conn: conn} do
-      non_orderable = product_fixture(%{orderable: false})
-
-      assert_raise(Ecto.NoResultsError, fn ->
-        live(conn, ~p"/products/#{non_orderable}")
-      end)
+      test_user_guest_cannot_view_unorderable_product(conn)
     end
 
     test "gets redirected away when trying to order a product",
@@ -817,7 +818,7 @@ defmodule CloudDbUiWeb.ProductLiveTest do
 
       order_product(index_live, product, 123)
 
-      flash = assert_redirect(index_live, ~p"/users/log_in")
+      flash = assert_redirect(index_live, ~p"/log_in")
 
       assert(flash["error"] =~ "You must log in")
     end
@@ -827,9 +828,10 @@ defmodule CloudDbUiWeb.ProductLiveTest do
     setup [:register_and_log_in_user, :create_product]
 
     test "gets redirected away", %{conn: conn, product: product} do
-      conn
-      |> live(~p"/products/#{product}/show/edit")
-      |> assert_redirect_to_main_page()
+      assert_redirect_to_index_or_show(
+        conn,
+        ~p"/products/#{product}/show/edit"
+      )
     end
 
     test "can view an orderable product", %{conn: conn, product: product} do
@@ -841,11 +843,7 @@ defmodule CloudDbUiWeb.ProductLiveTest do
     end
 
     test "cannot view a non-orderable product", %{conn: conn} do
-      non_orderable = product_fixture(%{orderable: false})
-
-      assert_raise(Ecto.NoResultsError, fn ->
-        live(conn, ~p"/products/#{non_orderable}")
-      end)
+      test_user_guest_cannot_view_unorderable_product(conn)
     end
 
     test "orders a valid quantity when there is no unpaid order",
@@ -1021,6 +1019,39 @@ defmodule CloudDbUiWeb.ProductLiveTest do
     refute(has_element?(index_live, "th", "Type ID"))
     assert(has_table_row?(index_live, "#products", product, [:id, :name]))
     refute(has_table_row?(index_live, "#products", unorderable, [:id, :name]))
+  end
+
+  @spec test_user_guest_cannot_view_unorderable_product(%Conn{}) ::
+            boolean()
+  defp test_user_guest_cannot_view_unorderable_product(%Conn{} = conn) do
+    unorderable = product_fixture(%{orderable: false})
+
+    try do
+      live(conn, ~p"/products/#{unorderable}")
+
+      assert(false)
+    catch
+      :exit, {value, {Phoenix.LiveViewTest, :live, paths}} ->
+        assert(value.status == 404)
+        assert(paths == [~p"/products/#{unorderable}"])
+    end
+  end
+
+  @spec test_user_guest_cannot_delete_product_in_listing(
+          %Conn{},
+          %Product{}
+        ) :: boolean()
+  defp test_user_guest_cannot_delete_product_in_listing(conn, product) do
+    {:ok, index_live, _html} = live(conn, ~p"/products")
+
+    assert_table_row_count(index_live, 1)
+    assert(has_element?(index_live, "#products-#{product.id}"))
+
+    click(index_live, "#products-#{product.id} a", "Delete")
+
+    assert(has_flash?(index_live, "Only an administrator may delete products"))
+    assert_table_row_count(index_live, 1)
+    assert(has_element?(index_live, "#products-#{product.id}"))
   end
 
   @spec test_user_guest_cannot_see_some_filter_form_input_fields(%Conn{}) ::
@@ -1481,7 +1512,7 @@ defmodule CloudDbUiWeb.ProductLiveTest do
 
   # Expects a product to already have an image path.
   @spec assert_image_replacement(%View{}, String.t(), String.t()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   defp assert_image_replacement(%View{} = live, selector, txt_filter) do
     click(live, selector, txt_filter)
 
@@ -1528,7 +1559,7 @@ defmodule CloudDbUiWeb.ProductLiveTest do
   end
 
   @spec assert_image_clearing(%View{}, String.t(), String.t()) ::
-          html_or_redirect()
+          String.t() | redirect_error()
   defp assert_image_clearing(%View{} = live, selector, txt_filter) do
     click(live, selector, txt_filter)
 
@@ -1566,7 +1597,8 @@ defmodule CloudDbUiWeb.ProductLiveTest do
 
   # Make the form send a `phx-submit` event with `product.id`
   # and `quantity`.
-  @spec order_product(%View{}, %Product{}, any()) :: html_or_redirect()
+  @spec order_product(%View{}, %Product{}, any()) ::
+          String.t() | redirect_error()
   defp order_product(%View{} = index_live, product, quantity) do
     submit(
       index_live,
@@ -1576,12 +1608,14 @@ defmodule CloudDbUiWeb.ProductLiveTest do
   end
 
   # Should return a rendered `#product-form`.
-  @spec change_form(%View{}, %{atom() => any()}) :: html_or_redirect()
+  @spec change_form(%View{}, %{atom() => any()}) ::
+          String.t() | redirect_error()
   defp change_form(%View{} = live_view, product_data) do
     change(live_view, "#product-form", %{product: product_data})
   end
 
-  @spec upload_form_image(%View{}, upload_entry()) :: html_or_redirect()
+  @spec upload_form_image(%View{}, upload_entry()) ::
+          String.t() | redirect_error()
   defp upload_form_image(%View{} = live, upload_entry) do
     upload(live, "#product-form", :image, upload_entry)
   end

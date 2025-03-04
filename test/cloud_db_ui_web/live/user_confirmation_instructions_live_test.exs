@@ -4,8 +4,7 @@ defmodule CloudDbUiWeb.UserConfirmationInstructionsLiveTest do
   import Phoenix.LiveViewTest
   import CloudDbUi.AccountsFixtures
 
-  alias CloudDbUi.Accounts
-  alias CloudDbUi.Repo
+  alias CloudDbUi.{Accounts, Repo}
 
   setup do
     %{user: user_fixture()}
@@ -13,13 +12,13 @@ defmodule CloudDbUiWeb.UserConfirmationInstructionsLiveTest do
 
   describe "Resend confirmation" do
     test "renders the resend confirmation page", %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/confirm")
+      {:ok, lv, _html} = live(conn, ~p"/confirm_email")
 
       assert(has_element?(lv, "button", "Resend confirmation instructions"))
     end
 
     test "sends a new confirmation token", %{conn: conn, user: user} do
-      {:ok, lv, _html} = live(conn, ~p"/users/confirm")
+      {:ok, lv, _html} = live(conn, ~p"/confirm_email")
 
       {:ok, conn} =
         lv
@@ -40,7 +39,7 @@ defmodule CloudDbUiWeb.UserConfirmationInstructionsLiveTest do
          %{conn: conn, user: user} do
       Repo.update!(Accounts.User.confirmation_changeset(user))
 
-      {:ok, lv, _html} = live(conn, ~p"/users/confirm")
+      {:ok, lv, _html} = live(conn, ~p"/confirm_email")
 
       {:ok, conn} =
         lv
@@ -57,7 +56,7 @@ defmodule CloudDbUiWeb.UserConfirmationInstructionsLiveTest do
 
     test "does not send confirmation token if email is invalid",
          %{conn: conn} do
-      {:ok, lv, _html} = live(conn, ~p"/users/confirm")
+      {:ok, lv, _html} = live(conn, ~p"/confirm_email")
 
       {:ok, conn} =
         lv

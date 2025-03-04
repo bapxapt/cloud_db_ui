@@ -3,13 +3,12 @@ defmodule CloudDbUi.FlopFilters do
   A module containing custom filters
   for [Flop Phoenix](https://hexdocs.pm/flop_phoenix).
   """
+  import CloudDbUiWeb.Utilities
+  import Ecto.Query
 
   alias Ecto.Query
   alias Ecto.Query.DynamicExpr
   alias Flop.Filter
-
-  import CloudDbUiWeb.Utilities
-  import Ecto.Query
 
   @type error() :: CloudDbUi.Type.error()
   @type params() :: CloudDbUi.Type.params()

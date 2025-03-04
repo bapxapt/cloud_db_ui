@@ -1,7 +1,7 @@
 defmodule CloudDbUiWeb.JavaScript do
-  alias Phoenix.LiveView.{Socket, JS}
-
   import Phoenix.LiveView
+
+  alias Phoenix.LiveView.{Socket, JS}
 
   @doc """
   Set the editable value and the `value=""` attribute of an input field

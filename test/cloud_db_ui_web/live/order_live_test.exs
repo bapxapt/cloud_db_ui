@@ -1,15 +1,15 @@
 defmodule CloudDbUiWeb.OrderLiveTest do
   use CloudDbUiWeb.ConnCase
 
+  import Phoenix.LiveViewTest
+  import CloudDbUi.{AccountsFixtures, OrdersFixtures}
+
   alias CloudDbUi.Orders.SubOrder
   alias CloudDbUi.Orders.Order
   alias Phoenix.LiveViewTest.View
   alias Plug.Conn
 
-  import Phoenix.LiveViewTest
-  import CloudDbUi.{AccountsFixtures, OrdersFixtures}
-
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
+  @type redirect_error() :: CloudDbUi.Type.redirect_error()
 
   @update_attrs %{paid_at: ~U[1990-01-01 00:00:00Z], paid: true}
 
@@ -19,9 +19,9 @@ defmodule CloudDbUiWeb.OrderLiveTest do
     setup [:create_order]
 
     test "gets redirected away", %{conn: conn, order: order} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/orders"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/orders/new"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/orders/#{order}/edit"))
+      assert_redirect_to_log_in_page(conn, ~p"/orders")
+      assert_redirect_to_log_in_page(conn, ~p"/orders/new")
+      assert_redirect_to_log_in_page(conn, ~p"/orders/#{order}/edit")
     end
   end
 
@@ -34,8 +34,8 @@ defmodule CloudDbUiWeb.OrderLiveTest do
 
     test "gets redirected away when creating or editing orders",
          %{conn: conn, order: order} do
-      assert_redirect_to_main_page(live(conn, ~p"/orders/new"))
-      assert_redirect_to_main_page(live(conn, ~p"/orders/#{order}/edit"))
+      assert_redirect_to_index_or_show(conn, ~p"/orders/new")
+      assert_redirect_to_index_or_show(conn, ~p"/orders/#{order}/edit")
     end
 
     # Can see only own orders.
@@ -174,7 +174,7 @@ defmodule CloudDbUiWeb.OrderLiveTest do
 
       index_live
       |> click("#orders-#{order.id} a", "Edit")
-      |> assert_match("Edit order ID")
+      |> assert_match("Edit order ID #{order.id}")
 
       assert_patch(index_live, ~p"/orders/#{order}/edit")
       refute(checked?(index_live, :paid))
@@ -238,16 +238,14 @@ defmodule CloudDbUiWeb.OrderLiveTest do
     setup [:create_order, :create_suborder]
 
     test "gets redirected away", %{conn: conn, order: order, suborder: sub} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/orders/#{order}"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/orders/#{order}/show"))
+      assert_redirect_to_log_in_page(conn, ~p"/orders/#{order}")
+      assert_redirect_to_log_in_page(conn, ~p"/orders/#{order}/show")
+      assert_redirect_to_log_in_page(conn, ~p"/orders/#{order}/show/edit")
 
-      conn
-      |> live(~p"/orders/#{order}/show/edit")
-      |> assert_redirect_to_log_in_page()
-
-      conn
-      |> live(~p"/orders/#{order}/show/#{sub}/edit")
-      |> assert_redirect_to_log_in_page()
+      assert_redirect_to_log_in_page(
+        conn,
+        ~p"/orders/#{order}/show/#{sub}/edit"
+      )
     end
   end
 
@@ -259,10 +257,10 @@ defmodule CloudDbUiWeb.OrderLiveTest do
       :create_paid_order_with_suborder
     ]
 
-    test "gets redirected away from editing",
+    test "gets redirected away when trying to edit an unpaid order",
          %{conn: conn, order: order, order_paid: paid} do
-      assert_redirect_to_main_page(live(conn, ~p"/orders/#{order}/show/edit"))
-      assert_redirect_to_main_page(live(conn, ~p"/orders/#{paid}/show/edit"))
+      assert_redirect_to_index_or_show(conn, ~p"/orders/#{order}/show/edit")
+      assert_redirect_to_index_or_show(conn, ~p"/orders/#{paid}/show/edit")
     end
 
     test "displays an unpaid order", %{conn: conn, order: order} do
@@ -790,7 +788,8 @@ defmodule CloudDbUiWeb.OrderLiveTest do
   end
 
   # Should return a rendered `#order-form`.
-  @spec change_form(%View{}, %{atom() => any()}) :: html_or_redirect()
+  @spec change_form(%View{}, %{atom() => any()}) ::
+          String.t() | redirect_error()
   defp change_form(%View{} = live_view, order_data) do
     change(live_view, "#order-form", %{order: order_data})
   end

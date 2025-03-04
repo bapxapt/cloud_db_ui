@@ -7,7 +7,7 @@ defmodule CloudDbUiWeb.UserSessionControllerTest do
 
   setup do: %{user: user_fixture()}
 
-  describe "POST /users/log_in" do
+  describe "POST /log_in" do
     test "logs the user in", %{conn: conn, user: user} do
       conn_posted = post_to_log_in(conn, user.email)
 
@@ -25,8 +25,8 @@ defmodule CloudDbUiWeb.UserSessionControllerTest do
         |> html_response(200)
 
       assert(response =~ user.email)
-      assert(response =~ ~p"/users/settings")
-      assert(response =~ ~p"/users/log_out")
+      assert(response =~ ~p"/settings")
+      assert(response =~ ~p"/log_out")
     end
 
     test "logs the user in with remember me", %{conn: conn, user: user} do
@@ -62,7 +62,7 @@ defmodule CloudDbUiWeb.UserSessionControllerTest do
     test "log-in following a password update", %{conn: conn, user: user} do
       conn_new = post_to_log_in(conn, user.email, "password_updated")
 
-      assert(redirected_to(conn_new) == ~p"/users/settings")
+      assert(redirected_to(conn_new) == ~p"/settings")
 
       conn_new.assigns.flash
       |> Phoenix.Flash.get(:info)
@@ -73,7 +73,7 @@ defmodule CloudDbUiWeb.UserSessionControllerTest do
          %{conn: conn} do
       conn_new = post_to_log_in(conn, "invalid@email.com", "invalid_password")
 
-      assert(redirected_to(conn_new) == ~p"/users/log_in")
+      assert(redirected_to(conn_new) == ~p"/log_in")
 
       conn_new.assigns.flash
       |> Phoenix.Flash.get(:error)
@@ -81,12 +81,12 @@ defmodule CloudDbUiWeb.UserSessionControllerTest do
     end
   end
 
-  describe "DELETE /users/log_out" do
+  describe "DELETE /log_out" do
     test "logs the user out", %{conn: conn, user: user} do
       conn_new =
         conn
         |> log_in_user(user)
-        |> delete(~p"/users/log_out")
+        |> delete(~p"/log_out")
 
       assert(redirected_to(conn_new) == ~p"/")
       refute(get_session(conn_new, :user_token))
@@ -97,7 +97,7 @@ defmodule CloudDbUiWeb.UserSessionControllerTest do
     end
 
     test "succeeds even if the user is not logged in", %{conn: conn} do
-      conn_new = delete(conn, ~p"/users/log_out")
+      conn_new = delete(conn, ~p"/log_out")
 
       assert(redirected_to(conn_new) == ~p"/")
       refute(get_session(conn_new, :user_token))
@@ -127,7 +127,7 @@ defmodule CloudDbUiWeb.UserSessionControllerTest do
       |> maybe_put_action(action)
       |> maybe_put_remember_me(remember_me)
 
-    post(conn, ~p"/users/log_in", post_body)
+    post(conn, ~p"/log_in", post_body)
   end
 
   @spec maybe_put_action(post_body(), String.t() | nil) :: post_body()

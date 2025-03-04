@@ -38,11 +38,22 @@ defmodule CloudDbUi.AccountsFixtures do
   def user_fixture(attrs \\ %{}) do
     {:ok, user} =
       attrs
+      |> maybe_put_password_confirmation()
       |> Enum.into(valid_user_attributes())
       |> CloudDbUi.Accounts.create_user()
 
     user
   end
+
+  @spec maybe_put_password_confirmation(attrs()) :: attrs()
+  defp maybe_put_password_confirmation(%{password: pass} = attrs)
+       when not is_map_key(attrs, :password_confirmation) do
+    Map.put_new(attrs, :password_confirmation, pass)
+  end
+
+  # No `:password` in `attrs`, or `attrs` already contain
+  # `:password_confirmation`.
+  defp maybe_put_password_confirmation(attrs), do: attrs
 
   # TODO: a function that takes a function that takes a string?
 

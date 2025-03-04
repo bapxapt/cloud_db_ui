@@ -1,15 +1,15 @@
 defmodule CloudDbUi.Orders.Order do
   use Ecto.Schema
 
-  alias CloudDbUi.Accounts.User
-  alias CloudDbUi.Products.Product
-  alias CloudDbUi.Orders.{Order, SubOrder}
-  alias Ecto.Changeset
-
   import CloudDbUi.Orders.Order.FlopSchemaFields
   import CloudDbUiWeb.Utilities
   import CloudDbUi.Changeset
   import Ecto.Changeset
+
+  alias CloudDbUi.Accounts.User
+  alias CloudDbUi.Products.Product
+  alias CloudDbUi.Orders.{Order, SubOrder}
+  alias Ecto.Changeset
 
   @type attrs :: CloudDbUi.Type.attrs()
 
@@ -41,9 +41,8 @@ defmodule CloudDbUi.Orders.Order do
   A changeset for validation when creating or editing an order
   as an admin.
   """
-  @spec validation_changeset(%__MODULE__{}, attrs(), %User{} | nil) ::
-          %Changeset{}
-  def validation_changeset(%__MODULE__{} = order, attrs, user) do
+  @spec validation_changeset(%Order{}, attrs(), %User{} | nil) :: %Changeset{}
+  def validation_changeset(%Order{} = order, attrs, user) do
     order
     |> cast(attrs, [:paid, :paid_at])
     # Skipping `cast()`: a required `"user_id"` is expected to be
@@ -61,9 +60,8 @@ defmodule CloudDbUi.Orders.Order do
   or for saving when creating/editing an order as an admin.
   `validation_changeset()` with extra steps.
   """
-  @spec saving_changeset(%__MODULE__{}, attrs(), %User{} | nil) ::
-          %Changeset{}
-  def saving_changeset(%__MODULE__{} = order, attrs, user) do
+  @spec saving_changeset(%Order{}, attrs(), %User{} | nil) :: %Changeset{}
+  def saving_changeset(%Order{} = order, attrs, user) do
     order
     |> validation_changeset(attrs, user)
     |> maybe_replace_and_validate_user_id(user)
@@ -73,22 +71,22 @@ defmodule CloudDbUi.Orders.Order do
   @doc """
   A changeset for paying for an order as a user.
   """
-  @spec payment_changeset(%__MODULE__{}) :: %Changeset{}
-  def payment_changeset(%__MODULE__{paid_at: nil} = order) do
+  @spec payment_changeset(%Order{}) :: %Changeset{}
+  def payment_changeset(%Order{paid_at: nil} = order) do
     change(order, %{paid: true, paid_at: DateTime.utc_now()})
   end
 
-  def payment_changeset(%__MODULE__{} = order) do
+  def payment_changeset(%Order{} = order) do
     changeset_with_already_paid_error(order)
   end
 
   @doc """
   A changeset for deletion. Invalid if the `order` has been paid for.
   """
-  @spec deletion_changeset(%__MODULE__{}) :: %Changeset{}
-  def deletion_changeset(%__MODULE__{paid_at: nil} = order), do: change(order)
+  @spec deletion_changeset(%Order{}) :: %Changeset{}
+  def deletion_changeset(%Order{paid_at: nil} = order), do: change(order)
 
-  def deletion_changeset(%__MODULE__{} = order) do
+  def deletion_changeset(%Order{} = order) do
     changeset_with_already_paid_error(order)
   end
 
@@ -112,7 +110,7 @@ defmodule CloudDbUi.Orders.Order do
   If getting by a `%Product{}`, both `:product_id` and `:unit_price`
   must match.
   """
-  @spec get_suborder(%__MODULE__{}, %Product{}) :: %SubOrder{} | nil
+  @spec get_suborder(%Order{}, %Product{}) :: %SubOrder{} | nil
   def get_suborder(order, %Product{} = prod) when is_list(order.suborders) do
     Enum.find(
       order.suborders,
@@ -120,7 +118,7 @@ defmodule CloudDbUi.Orders.Order do
     )
   end
 
-  @spec get_suborder(%__MODULE__{}, String.t()) :: %SubOrder{} | nil
+  @spec get_suborder(%Order{}, String.t()) :: %SubOrder{} | nil
   def get_suborder(order, suborder_id) when is_list(order.suborders) do
     Enum.find(order.suborders, &("#{&1.id}" == suborder_id))
   end
@@ -131,8 +129,8 @@ defmodule CloudDbUi.Orders.Order do
   This requires the `order` to have preloaded `:suborders`,
   and each of these sub-orders to have a preloaded `:product`.
   """
-  @spec product_field_values!(%__MODULE__{}, atom()) :: [any()]
-  def product_field_values!(%__MODULE__{} = order, product_field) do
+  @spec product_field_values!(%Order{}, atom()) :: [any()]
+  def product_field_values!(%Order{} = order, product_field) do
     Enum.map(order.suborders, &Map.fetch!(&1.product, product_field))
   end
 
@@ -140,8 +138,8 @@ defmodule CloudDbUi.Orders.Order do
   Determine whether an order is deletable. A user can delete
   only own unpaid orders. An admin can delete any unpaid orders.
   """
-  @spec deletable?(%__MODULE__{}, %User{}) :: boolean()
-  def deletable?(%__MODULE__{} = order, %User{} = user) do
+  @spec deletable?(%Order{}, %User{}) :: boolean()
+  def deletable?(%Order{} = order, %User{} = user) do
     !order.paid and (user.admin or user.id == order.user_id)
   end
 
@@ -157,10 +155,9 @@ defmodule CloudDbUi.Orders.Order do
   end
 
   # For `deletion_changeset()` and for `payment_changeset()`.
-  @spec changeset_with_already_paid_error(%__MODULE__{}, String.t()) ::
-          %Changeset{}
+  @spec changeset_with_already_paid_error(%Order{}, String.t()) :: %Changeset{}
   defp changeset_with_already_paid_error(
-         %__MODULE__{} = order,
+         %Order{} = order,
          msg \\ "the order has been paid for"
        ) do
     order
@@ -279,8 +276,8 @@ defmodule CloudDbUi.Orders.Order do
 
   # Expects each sub-order in the list under `:suborders` to have filled
   # `:subtotal`.
-  @spec maybe_fill_total(%__MODULE__{}) :: %__MODULE__{}
-  defp maybe_fill_total(%__MODULE__{total: nil} = order) do
+  @spec maybe_fill_total(%Order{}) :: %Order{}
+  defp maybe_fill_total(%Order{total: nil} = order) do
     total =
       Enum.reduce(order.suborders, Decimal.new("0.00"), fn suborder, acc ->
         acc
@@ -292,5 +289,5 @@ defmodule CloudDbUi.Orders.Order do
   end
 
   # `:total` is not `nil`.
-  defp maybe_fill_total(%__MODULE__{} = order), do: order
+  defp maybe_fill_total(%Order{} = order), do: order
 end

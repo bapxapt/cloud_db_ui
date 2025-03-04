@@ -1,15 +1,15 @@
 defmodule CloudDbUi.Products.Product do
   use Ecto.Schema
 
-  alias CloudDbUi.Accounts.User
-  alias CloudDbUi.Orders.SubOrder
-  alias CloudDbUi.Products.ProductType
-  alias Ecto.Changeset
-
   import CloudDbUi.Products.Product.FlopSchemaFields
   import CloudDbUi.Changeset
   import CloudDbUiWeb.Utilities
   import Ecto.Changeset
+
+  alias CloudDbUi.Accounts.User
+  alias CloudDbUi.Orders.SubOrder
+  alias CloudDbUi.Products.{Product, ProductType}
+  alias Ecto.Changeset
 
   @type attrs() :: CloudDbUi.Type.attrs()
 
@@ -39,12 +39,13 @@ defmodule CloudDbUi.Products.Product do
   end
 
   @doc false
-  @spec validation_changeset(%__MODULE__{},
+  @spec validation_changeset(
+          %Product{},
           attrs(),
           %ProductType{} | nil,
           [String.t()]
         ) :: %Changeset{}
-  def validation_changeset(%__MODULE__{} = prod, attrs, type, upload_errors) do
+  def validation_changeset(%Product{} = prod, attrs, type, upload_errors) do
     prod
     |> cast(attrs, [:product_type_id, :orderable, :image_path])
     |> cast_transformed(attrs, [:unit_price, :name, :description], &trim/1)
@@ -66,12 +67,12 @@ defmodule CloudDbUi.Products.Product do
 
   @doc false
   @spec saving_changeset(
-          %__MODULE__{},
+          %Product{},
           attrs(),
           %ProductType{} | nil,
           [String.t()]
         ) :: %Changeset{}
-  def saving_changeset(%__MODULE__{} = product, attrs, type, upload_errors) do
+  def saving_changeset(%Product{} = product, attrs, type, upload_errors) do
     product
     |> validation_changeset(attrs, type, upload_errors)
     |> case do
@@ -90,10 +91,10 @@ defmodule CloudDbUi.Products.Product do
   @doc """
   A changeset for deletion. Invalid if `:paid_orders` is not zero.
   """
-  @spec deletion_changeset(%__MODULE__{}) :: %Changeset{}
-  def deletion_changeset(%__MODULE__{paid_orders: 0} = type), do: change(type)
+  @spec deletion_changeset(%Product{}) :: %Changeset{}
+  def deletion_changeset(%Product{paid_orders: 0} = type), do: change(type)
 
-  def deletion_changeset(%__MODULE__{} = type) do
+  def deletion_changeset(%Product{} = type) do
     type
     |> change()
     |> add_error(

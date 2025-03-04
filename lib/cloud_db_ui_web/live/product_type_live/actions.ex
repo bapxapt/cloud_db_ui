@@ -5,12 +5,12 @@ defmodule CloudDbUiWeb.ProductTypeLive.Actions do
     router: CloudDbUiWeb.Router,
     statics: CloudDbUiWeb.static_paths()
 
+  import Phoenix.{Component, LiveView}
+
   alias CloudDbUi.Products
   alias CloudDbUi.Products.ProductType
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
-
-  import Phoenix.{Component, LiveView}
 
   @type params :: CloudDbUi.Type.params()
 

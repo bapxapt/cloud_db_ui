@@ -4,8 +4,6 @@ defmodule CloudDbUiWeb.SubOrderLiveTest do
   import Phoenix.LiveViewTest
   import CloudDbUi.OrdersFixtures
 
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
-
   @create_attrs %{quantity: 42, unit_price: 120.50}
   @update_attrs %{quantity: 4925, unit_price: 456.70}
 
@@ -13,12 +11,9 @@ defmodule CloudDbUiWeb.SubOrderLiveTest do
     setup [:create_suborder]
 
     test "gets redirected away", %{conn: conn, suborder: suborder} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/sub-orders"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/sub-orders/new"))
-
-      conn
-      |> live(~p"/sub-orders/#{suborder}/edit")
-      |> assert_redirect_to_log_in_page()
+      assert_redirect_to_log_in_page(conn, ~p"/sub-orders")
+      assert_redirect_to_log_in_page(conn, ~p"/sub-orders/new")
+      assert_redirect_to_log_in_page(conn, ~p"/sub-orders/#{suborder}/edit")
     end
   end
 
@@ -26,12 +21,9 @@ defmodule CloudDbUiWeb.SubOrderLiveTest do
     setup [:register_and_log_in_user, :create_suborder]
 
     test "gets redirected away", %{conn: conn, suborder: suborder} do
-      assert_redirect_to_main_page(live(conn, ~p"/sub-orders"))
-      assert_redirect_to_main_page(live(conn, ~p"/sub-orders/new"))
-
-      conn
-      |> live(~p"/sub-orders/#{suborder}/edit")
-      |> assert_redirect_to_main_page()
+      assert_redirect_to_main_page(conn, ~p"/sub-orders")
+      assert_redirect_to_main_page(conn, ~p"/sub-orders/new")
+      assert_redirect_to_main_page(conn, ~p"/sub-orders/#{suborder}/edit")
     end
   end
 
@@ -146,15 +138,13 @@ defmodule CloudDbUiWeb.SubOrderLiveTest do
     setup [:create_suborder]
 
     test "gets redirected away", %{conn: conn, suborder: suborder} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/sub-orders/#{suborder}"))
+      assert_redirect_to_log_in_page(conn, ~p"/sub-orders/#{suborder}")
+      assert_redirect_to_log_in_page(conn, ~p"/sub-orders/#{suborder}/show")
 
-      conn
-      |> live(~p"/sub-orders/#{suborder}/show")
-      |> assert_redirect_to_log_in_page()
-
-      conn
-      |> live(~p"/sub-orders/#{suborder}/show/edit")
-      |> assert_redirect_to_log_in_page()
+      assert_redirect_to_log_in_page(
+        conn,
+        ~p"/sub-orders/#{suborder}/show/edit"
+      )
     end
   end
 
@@ -162,15 +152,9 @@ defmodule CloudDbUiWeb.SubOrderLiveTest do
     setup [:register_and_log_in_user, :create_suborder]
 
     test "gets redirected away", %{conn: conn, suborder: suborder} do
-      assert_redirect_to_main_page(live(conn, ~p"/sub-orders/#{suborder}"))
-
-      conn
-      |> live(~p"/sub-orders/#{suborder}/show")
-      |> assert_redirect_to_main_page()
-
-      conn
-      |> live(~p"/sub-orders/#{suborder}/show/edit")
-      |> assert_redirect_to_main_page()
+      assert_redirect_to_main_page(conn, ~p"/sub-orders/#{suborder}")
+      assert_redirect_to_main_page(conn, ~p"/sub-orders/#{suborder}/show")
+      assert_redirect_to_main_page(conn, ~p"/sub-orders/#{suborder}/show/edit")
     end
   end
 

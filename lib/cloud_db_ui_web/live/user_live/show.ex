@@ -2,6 +2,9 @@ defmodule CloudDbUiWeb.UserLive.Show do
   use CloudDbUiWeb, :live_view
   use CloudDbUiWeb.FlashTimed, :live_view
 
+  import CloudDbUiWeb.UserLive.Actions
+  import CloudDbUiWeb.Utilities
+
   alias CloudDbUi.Accounts
   alias CloudDbUi.Accounts.User
   alias CloudDbUi.Orders.Order
@@ -9,12 +12,10 @@ defmodule CloudDbUiWeb.UserLive.Show do
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
 
-  import CloudDbUiWeb.UserLive.Actions
-  import CloudDbUiWeb.Utilities
-
   @type params() :: CloudDbUi.Type.params()
 
-  # TODO: why can't we use connected?() with prepare_socket() in Show?
+  # TODO: the app layout does not get rendered if a 404 exception happens during a connected mount()
+    # TODO: this does not happen during a disconnected mount()
 
   @impl true
   def mount(params, _session, socket) do
@@ -47,10 +48,21 @@ defmodule CloudDbUiWeb.UserLive.Show do
   end
 
   @spec prepare_socket(%Socket{}, params()) :: %Socket{}
-  defp prepare_socket(socket, %{"id" => user_id} = _params) do
+  defp prepare_socket(socket, params) do
+    prepare_socket(socket, params, connected?(socket))
+  end
+
+  @spec prepare_socket(%Socket{}, params(), boolean()) :: %Socket{}
+  defp prepare_socket(socket, %{"id" => user_id}, true = _connected?) do
     socket
     |> assign_user_and_orders!(user_id)
     |> FlashTimed.clear_after()
+  end
+
+  defp prepare_socket(socket, %{"id" => _} = _params, false = _connected?) do
+    socket
+    |> assign(:user, nil)
+    |> stream(:orders, [])
   end
 
   # Converts the list of orders into a list of their IDs.

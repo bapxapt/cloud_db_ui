@@ -2,18 +2,21 @@ defmodule CloudDbUiWeb.SubOrderLive.Show do
   use CloudDbUiWeb, :live_view
   use CloudDbUiWeb.FlashTimed, :live_view
 
+  import CloudDbUiWeb.SubOrderLive.Actions
+  import CloudDbUiWeb.{Utilities, HTML}
+
   alias CloudDbUi.Orders
   alias CloudDbUi.Orders.SubOrder
   alias CloudDbUiWeb.SubOrderLive.FormComponent
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
 
-  import CloudDbUiWeb.SubOrderLive.Actions
-  import CloudDbUiWeb.{Utilities, HTML}
-
   @type params() :: CloudDbUi.Type.params()
 
-  # TODO: why can't we use connected?() with prepare_socket() in Show?
+  # TODO: the app layout does not get rendered if a 404 exception happens during a connected mount()
+    # TODO: this does not happen during a disconnected mount()
+
+  # TODO: get a sub-order with preloaded :order with preloaded :user?
 
   @impl true
   def mount(params, _session, socket) do
@@ -48,10 +51,21 @@ defmodule CloudDbUiWeb.SubOrderLive.Show do
   end
 
   @spec prepare_socket(%Socket{}, params()) :: %Socket{}
-  defp prepare_socket(socket, %{"id" => suborder_id} = _params) do
+  defp prepare_socket(socket, params) do
+    prepare_socket(socket, params, connected?(socket))
+  end
+
+  @spec prepare_socket(%Socket{}, params(), boolean()) :: %Socket{}
+  defp prepare_socket(socket, %{"id" => suborder_id}, true = _connected?) do
     socket
     |> assign(:suborder, Orders.get_suborder_with_full_preloads!(suborder_id))
     |> assign(:load_images?, CloudDbUiWeb.ImageServer.up?())
+    |> FlashTimed.clear_after()
+  end
+
+  defp prepare_socket(socket, %{"id" => _} = _params, false = _connected?) do
+    socket
+    |> assign(:suborder, nil)
     |> FlashTimed.clear_after()
   end
 

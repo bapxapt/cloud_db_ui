@@ -1,8 +1,7 @@
 defmodule CloudDbUi.ProductsTest do
   use CloudDbUi.DataCase
 
-  alias CloudDbUi.Products
-  alias CloudDbUi.Orders
+  alias CloudDbUi.{Products, Orders}
   alias Ecto.Changeset
   alias Flop.Meta
 

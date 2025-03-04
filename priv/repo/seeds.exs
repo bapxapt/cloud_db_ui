@@ -1,9 +1,15 @@
+
 # A script for populating the data base. You can run it as:
 #
 #     mix run priv/repo/seeds.exs
 #
 # Inside the script, you can read and write to any of your
-# repositories directly.
+# repositories directly:
+#
+#     CloudDbUi.Repo.insert!(%CloudDbUi.SomeSchema{})
+#
+# We recommend using the bang functions (`insert!`, `update!`
+# and so on) as they will fail if something goes wrong.
 
 alias CloudDbUi.Repo
 alias CloudDbUi.Orders.Order

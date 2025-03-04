@@ -6,16 +6,19 @@ defmodule CloudDbUiWeb.OrderLive.Index do
     schema_field_module: CloudDbUi.Orders.Order.FlopSchemaFields,
     stream_name: :orders
 
+  import CloudDbUiWeb.{Utilities, JavaScript}
+
   alias CloudDbUi.Orders.Order
   alias CloudDbUiWeb.OrderLive.Actions
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
 
-  import CloudDbUiWeb.{Utilities, JavaScript}
-
   @type params() :: CloudDbUi.Type.params()
 
   # TODO: does not count results correctly for an admin even right after loading the page
+
+  # TODO: remounts after pressing "Edit" instead of simply opening the modal
+    # TODO: [warning] navigate event failed because you are redirecting across live_sessions
 
   @impl true
   def mount(params, _session, socket) do

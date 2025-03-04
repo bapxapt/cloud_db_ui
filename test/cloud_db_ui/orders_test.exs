@@ -1,10 +1,10 @@
 defmodule CloudDbUi.OrdersTest do
   use CloudDbUi.DataCase
 
+  import CloudDbUi.{OrdersFixtures, AccountsFixtures, ProductsFixtures}
+
   alias CloudDbUi.Orders
   alias Ecto.Changeset
-
-  import CloudDbUi.{OrdersFixtures, AccountsFixtures, ProductsFixtures}
 
   describe "orders" do
     alias CloudDbUi.Orders.Order

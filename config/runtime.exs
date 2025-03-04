@@ -56,19 +56,14 @@ if config_env() == :prod do
   config :cloud_db_ui, CloudDbUiWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
-      # Enable IPv6 and bind on all interfaces with {0, 0, 0, 0, 0, 0, 0, 0}.
-      # Set it to {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/plug_cowboy/Plug.Cowboy.html
+      # Enable IPv6 and bind on all interfaces with `{0, 0, 0, 0, 0, 0, 0, 0}`.
+      # Set it to `{0, 0, 0, 0, 0, 0, 0, 1}` for local-network-only access.
+      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
       # for details about using IPv6 vs IPv4 and loopback vs public addresses.
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ],
     secret_key_base: secret_key_base
-
-  config :cloud_db_ui, CloudDbUiWeb.ImageServer,
-    hostname: System.get_env("IMAGE_SERVER_HOST"),
-    token_ro: System.get_env("IMAGE_SERVER_RO_TOKEN"),
-    token_rw: System.get_env("IMAGE_SERVER_RW_TOKEN")
 
   # ## SSL Support
   #
@@ -94,8 +89,8 @@ if config_env() == :prod do
   # "priv/ssl/server.key". For all supported SSL configuration
   # options, see https://hexdocs.pm/plug/Plug.SSL.html#configure/1
   #
-  # We also recommend setting `force_ssl` in your endpoint, ensuring
-  # no data is ever sent via http, always redirecting to https:
+  # We also recommend setting `force_ssl` in your config/prod.exs,
+  # ensuring no data is ever sent via http, always redirecting to https:
   #
   #     config :cloud_db_ui, CloudDbUiWeb.Endpoint,
   #       force_ssl: [hsts: true]
@@ -120,4 +115,9 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Hackney
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+
+  config :cloud_db_ui, CloudDbUiWeb.ImageServer,
+    hostname: System.get_env("IMAGE_SERVER_HOST"),
+    token_ro: System.get_env("IMAGE_SERVER_RO_TOKEN"),
+    token_rw: System.get_env("IMAGE_SERVER_RW_TOKEN")
 end

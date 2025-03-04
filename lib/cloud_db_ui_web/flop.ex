@@ -1,11 +1,11 @@
 defmodule CloudDbUiWeb.Flop do
-  alias CloudDbUi.Accounts.User
-  alias Phoenix.LiveView.Socket
-  alias Flop.{Filter, Meta}
-
   import CloudDbUiWeb.Utilities
   import CloudDbUi.Changeset, [only: [decimal_format_error_message: 1]]
   import CloudDbUi.FlopParamSanitiser
+
+  alias CloudDbUi.Accounts.User
+  alias Phoenix.LiveView.Socket
+  alias Flop.{Filter, Meta}
 
   @type error() :: CloudDbUi.Type.error()
   @type params() :: CloudDbUi.Type.params()

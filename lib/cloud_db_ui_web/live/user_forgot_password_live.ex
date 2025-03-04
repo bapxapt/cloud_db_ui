@@ -1,9 +1,12 @@
 defmodule CloudDbUiWeb.UserForgotPasswordLive do
   use CloudDbUiWeb, :live_view
 
-  alias CloudDbUi.Accounts
+  import CloudDbUiWeb.{Utilities, HTML}
 
-  import CloudDbUiWeb.Utilities
+  alias CloudDbUi.Accounts
+  alias Phoenix.LiveView.Socket
+
+  @type params() :: CloudDbUi.Type.params()
 
   @impl true
   def render(assigns) do
@@ -17,13 +20,18 @@ defmodule CloudDbUiWeb.UserForgotPasswordLive do
       <.simple_form
         for={@form}
         bg_class="bg-green-100/90"
-        id="reset_password_form"
+        id="forgot-password-form"
         phx-submit="send_email"
+        phx-change="validate"
       >
         <.input
           field={@form[:email]}
           type="text"
           placeholder="E-mail"
+          label={label_text("E-mail address", @form[:email].value, 160)}
+          data-value="160"
+          phx-hook="CharacterCounter"
+          phx-debounce="360"
           required
         />
 
@@ -35,8 +43,8 @@ defmodule CloudDbUiWeb.UserForgotPasswordLive do
       </.simple_form>
 
       <p class="text-center text-sm mt-4">
-        <.link href={~p"/users/register"}>Register</.link>
-        | <.link href={~p"/users/log_in"}>Log in</.link>
+        <.link href={~p"/register"}>Register</.link>
+        | <.link href={~p"/log_in"}>Log in</.link>
       </p>
     </div>
     """
@@ -48,20 +56,44 @@ defmodule CloudDbUiWeb.UserForgotPasswordLive do
   end
 
   @impl true
-  def handle_event("send_email", %{"user" => %{"email" => email}}, socket) do
-    if user = Accounts.get_user_by_email(trim_downcase(email)) do
-      Accounts.deliver_user_reset_password_instructions(
-        user,
-        &url(~p"/users/reset_password/#{&1}")
-      )
+  def handle_event("validate", %{"user" => user_params} = _params, socket) do
+    {:noreply, validate_user_email(socket, user_params)}
+  end
+
+  def handle_event("send_email", %{"user" => user_params} = _params, socket) do
+    {:noreply, send_email_to_user(socket, user_params)}
+  end
+
+  @spec validate_user_email(%Socket{}, params()) :: %Socket{}
+  defp validate_user_email(socket, user_params) do
+    changeset =
+      %Accounts.User{}
+      |> Accounts.change_user_email(user_params)
+      |> Map.put(:action, :validate)
+
+    assign(socket, :form, to_form(changeset, [as: "user"]))
+  end
+
+  @spec send_email_to_user(%Socket{}, params()) :: %Socket{}
+  defp send_email_to_user(socket, %{"email" => e_mail} = user_params) do
+    socket
+    |> validate_user_email(user_params)
+    |> case do
+      %{assigns: %{form: %{errors: []}}} = socket ->
+        if user = Accounts.get_user_by_email(trim_downcase(e_mail)) do
+          Accounts.deliver_user_reset_password_instructions(
+            user,
+            &url(~p"/reset_password/#{&1}")
+          )
+        end
+
+        socket
+        |> put_flash(:info, info_flash_title())
+        |> redirect(to: ~p"/")
+
+      any_socket ->
+        any_socket
     end
-
-    socket_new =
-      socket
-      |> put_flash(:info, info_flash_title())
-      |> redirect(to: ~p"/")
-
-    {:noreply, socket_new}
   end
 
   @spec info_flash_title() :: String.t()

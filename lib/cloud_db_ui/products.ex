@@ -2,7 +2,6 @@ defmodule CloudDbUi.Products do
   @moduledoc """
   The Products context.
   """
-
   import Ecto.Query, warn: false
 
   alias CloudDbUi.Repo

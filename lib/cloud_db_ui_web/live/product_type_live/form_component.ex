@@ -1,13 +1,13 @@
 defmodule CloudDbUiWeb.ProductTypeLive.FormComponent do
   use CloudDbUiWeb, :live_component
 
+  import CloudDbUiWeb.{Utilities, HTML}
+  import CloudDbUi.{Changeset, StringQueue}
+
   alias CloudDbUi.Products
   alias CloudDbUi.Products.ProductType
   alias Phoenix.LiveView.Socket
   alias Ecto.Changeset
-
-  import CloudDbUiWeb.{Utilities, HTML}
-  import CloudDbUi.{Changeset, StringQueue}
 
   @type params :: CloudDbUi.Type.params()
 

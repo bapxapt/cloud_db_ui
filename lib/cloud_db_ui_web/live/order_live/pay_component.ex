@@ -2,9 +2,8 @@ defmodule CloudDbUiWeb.OrderLive.PayComponent do
   use CloudDbUiWeb, :live_component
   use CloudDbUiWeb.FlashTimed, :live_component
 
-  alias CloudDbUi.Orders
+  alias CloudDbUi.{Orders, Accounts}
   alias CloudDbUi.Orders.Order
-  alias CloudDbUi.Accounts
   alias CloudDbUi.Accounts.User
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket

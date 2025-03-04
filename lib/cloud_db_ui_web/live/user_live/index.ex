@@ -6,11 +6,11 @@ defmodule CloudDbUiWeb.UserLive.Index do
     schema_field_module: CloudDbUi.Accounts.User.FlopSchemaFields,
     stream_name: :users
 
+  import CloudDbUiWeb.JavaScript
+
   alias CloudDbUiWeb.UserLive.{FormComponent, Actions}
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
-
-  import CloudDbUiWeb.JavaScript
 
   @type params() :: CloudDbUi.Type.params()
 

@@ -21,7 +21,7 @@ defmodule CloudDbUiWeb.HTML do
   """
   @spec link(String.t(), String.t(), String.t() | nil) :: {:safe, list()}
   def link(text, url, class \\ nil) do
-    Phoenix.HTML.Link.link(text, [to: url, class: class])
+    PhoenixHTMLHelpers.Link.link(text, [to: url, class: class])
   end
 
   @doc """
@@ -50,7 +50,7 @@ defmodule CloudDbUiWeb.HTML do
   defp img_tag(path_at_img_server, alt, width) do
     path_at_img_server
     |> img_src()
-    |> Phoenix.HTML.Tag.img_tag([alt: alt, width: width])
+    |> PhoenixHTMLHelpers.Tag.img_tag([alt: alt, width: width])
   end
 
   # This `nil` will make the image get replaced by the value of `alt`.

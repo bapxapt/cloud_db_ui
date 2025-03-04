@@ -1,25 +1,22 @@
 defmodule CloudDbUiWeb.ProductTypeLiveTest do
   use CloudDbUiWeb.ConnCase
 
-  alias CloudDbUi.DataCase
-  alias Phoenix.LiveViewTest.View
-
   import CloudDbUi.ProductsFixtures
   import Phoenix.LiveViewTest
 
+  alias CloudDbUi.DataCase
+  alias Phoenix.LiveViewTest.View
+
   @type params() :: CloudDbUi.Type.params()
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
+  @type redirect_error() :: CloudDbUi.Type.redirect_error()
 
   describe "Index, a not-logged-in guest" do
     setup [:create_product_type]
 
     test "gets redirected away", %{conn: conn, type: type} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/product_types"))
-      assert_redirect_to_log_in_page(live(conn, ~p"/product_types/new"))
-
-      conn
-      |> live(~p"/product_types/#{type}/edit")
-      |> assert_redirect_to_log_in_page()
+      assert_redirect_to_log_in_page(conn, ~p"/product_types")
+      assert_redirect_to_log_in_page(conn, ~p"/product_types/new")
+      assert_redirect_to_log_in_page(conn, ~p"/product_types/#{type}/edit")
     end
   end
 
@@ -27,12 +24,9 @@ defmodule CloudDbUiWeb.ProductTypeLiveTest do
     setup [:register_and_log_in_user, :create_product_type]
 
     test "gets redirected away", %{conn: conn, type: type} do
-      assert_redirect_to_main_page(live(conn, ~p"/product_types"))
-      assert_redirect_to_main_page(live(conn, ~p"/product_types/new"))
-
-      conn
-      |> live(~p"/product_types/#{type}/edit")
-      |> assert_redirect_to_main_page()
+      assert_redirect_to_main_page(conn, ~p"/product_types")
+      assert_redirect_to_main_page(conn, ~p"/product_types/new")
+      assert_redirect_to_main_page(conn, ~p"/product_types/#{type}/edit")
     end
   end
 
@@ -421,15 +415,13 @@ defmodule CloudDbUiWeb.ProductTypeLiveTest do
     setup [:create_product_type]
 
     test "gets redirected away", %{conn: conn, type: type} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/product_types/#{type}"))
+      assert_redirect_to_log_in_page(conn, ~p"/product_types/#{type}")
+      assert_redirect_to_log_in_page(conn, ~p"/product_types/#{type}/show")
 
-      conn
-      |> live(~p"/product_types/#{type}/show")
-      |> assert_redirect_to_log_in_page()
-
-      conn
-      |> live(~p"/product_types/#{type}/show/edit")
-      |> assert_redirect_to_log_in_page()
+      assert_redirect_to_log_in_page(
+        conn,
+        ~p"/product_types/#{type}/show/edit"
+      )
     end
   end
 
@@ -437,12 +429,9 @@ defmodule CloudDbUiWeb.ProductTypeLiveTest do
     setup [:register_and_log_in_user, :create_product_type]
 
     test "gets redirected away", %{conn: conn, type: type} do
-      assert_redirect_to_main_page(live(conn, ~p"/product_types/#{type}"))
-      assert_redirect_to_main_page(live(conn, ~p"/product_types/#{type}/show"))
-
-      conn
-      |> live(~p"/product_types/#{type}/show/edit")
-      |> assert_redirect_to_main_page()
+      assert_redirect_to_main_page(conn, ~p"/product_types/#{type}")
+      assert_redirect_to_main_page(conn, ~p"/product_types/#{type}/show")
+      assert_redirect_to_main_page(conn, ~p"/product_types/#{type}/show/edit")
     end
   end
 
@@ -583,7 +572,8 @@ defmodule CloudDbUiWeb.ProductTypeLiveTest do
   end
 
   # Should return a rendered `#product-type-form`.
-  @spec change_form(%View{}, %{atom() => any()}) :: html_or_redirect()
+  @spec change_form(%View{}, %{atom() => any()}) ::
+          String.t() | redirect_error()
   defp change_form(%View{} = live_view, type_data) do
     change(live_view, "#product-type-form", %{product_type: type_data})
   end

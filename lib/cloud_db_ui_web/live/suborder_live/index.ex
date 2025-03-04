@@ -2,13 +2,13 @@ defmodule CloudDbUiWeb.SubOrderLive.Index do
   use CloudDbUiWeb, :live_view
   use CloudDbUiWeb.FlashTimed, :live_view
 
+  import CloudDbUiWeb.SubOrderLive.Actions
+  import CloudDbUiWeb.{Utilities, JavaScript}
+
   alias CloudDbUi.Orders
   alias Phoenix.LiveView.Socket
   alias CloudDbUiWeb.SubOrderLive.FormComponent
   alias CloudDbUiWeb.FlashTimed
-
-  import CloudDbUiWeb.SubOrderLive.Actions
-  import CloudDbUiWeb.{Utilities, JavaScript}
 
   @type params() :: CloudDbUi.Type.params()
 

@@ -2,12 +2,12 @@ defmodule CloudDbUiWeb.TopUpLive do
   use CloudDbUiWeb, :live_view
   use CloudDbUiWeb.FlashTimed, :live_view
 
+  import CloudDbUiWeb.{Utilities, JavaScript}
+
   alias CloudDbUi.Accounts
   alias CloudDbUi.Accounts.User
   alias CloudDbUiWeb.FlashTimed
   alias Phoenix.LiveView.Socket
-
-  import CloudDbUiWeb.{Utilities, JavaScript}
 
   @type params :: CloudDbUi.Type.params()
 

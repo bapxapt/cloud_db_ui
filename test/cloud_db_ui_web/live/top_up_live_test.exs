@@ -1,16 +1,16 @@
 defmodule CloudDbUiWeb.TopUpLiveTest do
   use CloudDbUiWeb.ConnCase
 
+  import Phoenix.LiveViewTest
+
   alias CloudDbUi.Accounts.User
   alias Phoenix.LiveViewTest.View
 
-  import Phoenix.LiveViewTest
-
-  @type html_or_redirect() :: CloudDbUi.Type.html_or_redirect()
+  @type redirect_error() :: CloudDbUi.Type.redirect_error()
 
   describe "A not-logged-in guest" do
     test "gets redirected away", %{conn: conn} do
-      assert_redirect_to_log_in_page(live(conn, ~p"/top_up"))
+      assert_redirect_to_log_in_page(conn, ~p"/top_up")
     end
   end
 
@@ -19,8 +19,9 @@ defmodule CloudDbUiWeb.TopUpLiveTest do
 
     test "gets redirected away", %{conn: conn} do
       assert_redirect_to_main_page(
-        live(conn, ~p"/top_up"),
-        "This is a page for non-administrator"
+        conn,
+        ~p"/top_up",
+        "This is a page for non-administrator users."
       )
     end
   end
@@ -88,22 +89,23 @@ defmodule CloudDbUiWeb.TopUpLiveTest do
   end
 
   # Should return a rendered `#top-up-form`.
-  @spec change_amount(%View{}, any()) :: html_or_redirect()
+  @spec change_amount(%View{}, any()) :: String.t() | redirect_error()
   defp change_amount(%View{} = top_up_live, amount) do
     change_form(top_up_live, %{top_up_amount: amount})
   end
 
-  @spec change_form(%View{}, %{atom() => any()}) :: html_or_redirect()
+  @spec change_form(%View{}, %{atom() => any()}) ::
+          String.t() | redirect_error()
   def change_form(%View{} = top_up_live, user_data) do
     change(top_up_live, "#top-up-form", %{user: user_data})
   end
 
-  @spec top_up(%View{}, any()) :: html_or_redirect()
+  @spec top_up(%View{}, any()) :: String.t() | redirect_error()
   defp top_up(%View{} = top_up_live, amount) do
     submit(top_up_live, "#top-up-form", %{user: %{top_up_amount: amount}})
   end
 
-  @spec top_up_to_limit(%View{}) :: html_or_redirect()
+  @spec top_up_to_limit(%View{}) :: String.t() | redirect_error()
   defp top_up_to_limit(%View{} = live) do
     change_amount(live, User.top_up_amount_limit())
 
@@ -116,7 +118,7 @@ defmodule CloudDbUiWeb.TopUpLiveTest do
         top_up_to_limit(live)
 
       error_exceeded ->
-        [excess] = Regex.run(~r/(?<=by PLN )\d+(?:\.\d{1,})/, error_exceeded)
+        [excess] = Regex.run(~r/(?<=by PLN )\d+(?:\.\d+)/, error_exceeded)
 
         top_up(live, Decimal.sub(User.top_up_amount_limit(), excess))
     end

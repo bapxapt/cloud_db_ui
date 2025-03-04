@@ -4,11 +4,11 @@ defmodule CloudDbUi.OrdersFixtures do
   entities via the `CloudDbUi.Orders` context.
   """
 
+  import CloudDbUi.{AccountsFixtures, ProductsFixtures}
+
   alias CloudDbUi.Accounts.User
   alias CloudDbUi.Products.Product
   alias CloudDbUi.Orders.{Order, SubOrder}
-
-  import CloudDbUi.{AccountsFixtures, ProductsFixtures}
 
   @type attrs() :: CloudDbUi.Type.attrs()
 
